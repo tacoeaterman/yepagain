@@ -1,25 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
 import { database, ref, get, update } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'wouter';
 
 interface UserProfile {
   id: string;
   email: string;
   displayName: string;
   hasHostingPrivilege: boolean;
-  isAdmin: boolean;
   createdAt: string;
 }
 
 export default function AdminPanel() {
   const { user } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,34 +77,10 @@ export default function AdminPanel() {
     }
   };
 
-  if (adminLoading || loading) {
+  if (loading) {
     return (
       <div className="container mx-auto p-6">
-        <div className="text-center text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  // Check if user has admin privileges
-  if (!isAdmin) {
-    return (
-      <div className="container mx-auto p-6">
-        <Card className="glass-card rounded-3xl p-8 border-0">
-          <CardContent className="p-0 text-center">
-            <h1 className="text-3xl font-bold text-white mb-4">Access Denied</h1>
-            <p className="text-white/80 mb-6">
-              You don't have admin privileges to access this panel.
-            </p>
-            <p className="text-white/60 text-sm mb-6">
-              Admin privileges can only be granted through the Firebase console.
-            </p>
-            <Link href="/">
-              <Button className="bg-brand-accent text-white font-semibold py-3 px-6 rounded-xl hover:bg-brand-accent/90 transition-colors">
-                Return to Main Menu
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
+        <div className="text-center">Loading users...</div>
       </div>
     );
   }
@@ -123,10 +95,6 @@ export default function AdminPanel() {
       <Card>
         <CardHeader>
           <CardTitle>User Management</CardTitle>
-          <p className="text-sm text-gray-600 mt-2">
-            Note: Admin privileges can only be granted through the Firebase Console. 
-            Navigate to your Firebase project → Realtime Database → users → {`{userId}`} → set isAdmin to true.
-          </p>
         </CardHeader>
         <CardContent>
           {users.length === 0 ? (
@@ -151,16 +119,6 @@ export default function AdminPanel() {
                         checked={user.hasHostingPrivilege}
                         onCheckedChange={() => toggleHostingPrivilege(user.id, user.hasHostingPrivilege)}
                       />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm">Admin:</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        user.isAdmin 
-                          ? 'bg-red-500/20 text-red-300' 
-                          : 'bg-gray-500/20 text-gray-300'
-                      }`}>
-                        {user.isAdmin ? '✅ Admin' : '❌ User'}
-                      </span>
                     </div>
                   </div>
                 </div>

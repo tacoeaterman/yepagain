@@ -42,7 +42,6 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       hasHostingPrivilege: insertUser.hasHostingPrivilege ?? false,
-      isAdmin: insertUser.isAdmin ?? false,
       createdAt: new Date()
     };
     this.users.set(id, user);

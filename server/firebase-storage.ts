@@ -52,7 +52,6 @@ export class FirebaseStorage implements IStorage {
         ...insertUser, 
         id,
         hasHostingPrivilege: insertUser.hasHostingPrivilege ?? false,
-        isAdmin: insertUser.isAdmin ?? false,
         createdAt: new Date().toISOString()
       };
       
