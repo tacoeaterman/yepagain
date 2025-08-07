@@ -71,11 +71,11 @@ export class MemStorage implements IStorage {
   async createGame(insertGame: InsertGame): Promise<Game> {
     const id = randomUUID();
     const gameCode = this.generateGameCode();
-    const game: Game = { 
-      ...insertGame, 
-      id,
-      gameCode,
-      roundName: insertGame.roundName ?? null,
+          const game: Game = { 
+        ...insertGame, 
+        id,
+        gameCode,
+        courseName: insertGame.courseName ?? null,
       currentHole: insertGame.currentHole ?? 1,
       currentPar: insertGame.currentPar ?? 3,
       gamePhase: insertGame.gamePhase ?? "lobby",
@@ -104,7 +104,7 @@ export class MemStorage implements IStorage {
   private generateGameCode(): string {
     let code: string;
     do {
-      code = Math.random().toString(36).substring(2, 7).toUpperCase();
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
     } while (Array.from(this.games.values()).some(game => game.gameCode === code));
     
     return code;

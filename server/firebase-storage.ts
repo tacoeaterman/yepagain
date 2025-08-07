@@ -115,7 +115,7 @@ export class FirebaseStorage implements IStorage {
         ...insertGame, 
         id,
         gameCode,
-        roundName: insertGame.roundName ?? null,
+        courseName: insertGame.courseName ?? null,
         currentHole: insertGame.currentHole ?? 1,
         currentPar: insertGame.currentPar ?? 3,
         gamePhase: insertGame.gamePhase ?? "lobby",
@@ -168,7 +168,7 @@ export class FirebaseStorage implements IStorage {
     const maxAttempts = 100;
     
     do {
-      code = Math.random().toString(36).substring(2, 7).toUpperCase();
+      code = Math.random().toString(36).substring(2, 8).toUpperCase();
       attempts++;
       
       if (attempts > maxAttempts) {
