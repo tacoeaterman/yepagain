@@ -42,6 +42,7 @@ export class MemStorage implements IStorage {
       ...insertUser, 
       id,
       hasHostingPrivilege: insertUser.hasHostingPrivilege ?? false,
+      isAdmin: insertUser.isAdmin ?? false,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -75,7 +76,7 @@ export class MemStorage implements IStorage {
       ...insertGame, 
       id,
       gameCode,
-      courseName: insertGame.courseName ?? null,
+      roundName: insertGame.roundName ?? null,
       currentHole: insertGame.currentHole ?? 1,
       currentPar: insertGame.currentPar ?? 3,
       gamePhase: insertGame.gamePhase ?? "lobby",
@@ -104,7 +105,7 @@ export class MemStorage implements IStorage {
   private generateGameCode(): string {
     let code: string;
     do {
-      code = Math.random().toString(36).substring(2, 8).toUpperCase();
+      code = Math.random().toString(36).substring(2, 7).toUpperCase();
     } while (Array.from(this.games.values()).some(game => game.gameCode === code));
     
     return code;

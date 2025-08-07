@@ -23,10 +23,10 @@ export function useGame() {
   }, [user]);
 
   const generateGameCode = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
+    return Math.random().toString(36).substring(2, 7).toUpperCase();
   };
 
-  const createGame = async (totalHoles: number, courseName?: string) => {
+  const createGame = async (totalHoles: number, roundName?: string) => {
     if (!user || !hasHostingPrivilege) {
       toast({
         title: "Cannot create game",
@@ -43,7 +43,7 @@ export function useGame() {
         id: gameRef.key!,
         gameCode,
         hostId: user.uid,
-        courseName,
+        roundName,
         totalHoles,
         currentHole: 1,
         currentPar: 3,
@@ -132,7 +132,7 @@ export function useGame() {
         
         toast({
           title: "Joined game!",
-          description: `Welcome to ${gameData.courseName || 'the game'}`,
+          description: `Welcome to ${gameData.roundName || 'the round'}`,
         });
       }, { onlyOnce: true });
     } catch (error: any) {

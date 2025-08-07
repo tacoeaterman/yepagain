@@ -28,6 +28,7 @@ export function useAuth() {
         email: result.user.email,
         displayName: displayName,
         hasHostingPrivilege: false, // Default to false, can be changed by admin
+        isAdmin: false, // Default to false, can only be set via Firebase console
         createdAt: new Date().toISOString()
       };
       

@@ -8,14 +8,15 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   displayName: text("display_name").notNull(),
   hasHostingPrivilege: boolean("has_hosting_privilege").default(false),
+  isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
 export const games = pgTable("games", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  gameCode: varchar("game_code", { length: 6 }).notNull().unique(),
+  gameCode: varchar("game_code", { length: 5 }).notNull().unique(),
   hostId: varchar("host_id").notNull(),
-  courseName: text("course_name"),
+  roundName: text("round_name"),
   totalHoles: integer("total_holes").notNull(),
   currentHole: integer("current_hole").default(1),
   currentPar: integer("current_par").default(3),
