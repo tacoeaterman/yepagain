@@ -3,11 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <script type="module" crossorigin src="/src/main.tsx"></script>
+    <link rel="modulepreload" crossorigin href="/src/main.tsx">
+    <link rel="stylesheet" crossorigin href="/src/index.css">
+    <title>Kicked in the Disc</title>
+    <script>
+      // Inject Firebase configuration from environment variables
+      window.FIREBASE_WEBAPP_CONFIG = {
+        apiKey: "AIzaSyCEtbJ-KR_UV9LAlYlnvgoxliRs5FkSdXk",
+        appId: "1:987543051729:web:c258be8a9deaa79a52d4f0",
+        authDomain: "kicked-in-the-disc.firebaseapp.com",
+        databaseURL: "https://kicked-in-the-disc-default-rtdb.firebaseio.com",
+        messagingSenderId: "987543051729",
+        projectId: "kicked-in-the-disc",
+        storageBucket: "kicked-in-the-disc.firebasestorage.app"
+      };
+    </script>
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
-    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
   </body>
 </html>

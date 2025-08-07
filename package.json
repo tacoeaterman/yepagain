@@ -10,7 +10,7 @@
     "build:prod:flat": "npm run build && npm run dist:prod:flat",
     "dist:prod": "node scripts/create-prod-dist.js",
     "dist:prod:flat": "node scripts/create-flat-prod-dist.js",
-    "start": "NODE_ENV=production node dist/index-prod.js",
+    "start": "set NODE_ENV=production && node dist/index-prod.js",
     "check": "tsc",
     "db:push": "drizzle-kit push"
   },
