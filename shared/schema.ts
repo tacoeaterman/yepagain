@@ -13,7 +13,7 @@ export const users = pgTable("users", {
 
 export const games = pgTable("games", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  gameCode: varchar("game_code", { length: 5 }).notNull().unique(),
+  gameCode: varchar("game_code", { length: 6 }).notNull().unique(),
   hostId: varchar("host_id").notNull(),
   roundName: text("round_name"),
   totalHoles: integer("total_holes").notNull(),
