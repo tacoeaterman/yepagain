@@ -4,7 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGame } from "@/hooks/useGame";
 import { Link } from "wouter";
-import { Plus, Users, ShoppingBag, BarChart3 } from "lucide-react";
+import { Plus, Users, ShoppingBag, BarChart3, Settings } from "lucide-react";
 
 export default function MainMenu() {
   const { user, logout } = useAuth();
@@ -21,13 +21,22 @@ export default function MainMenu() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-white/80 text-sm">{user?.displayName || user?.email}</span>
+            <Link href="/admin">
+              <Button
+                className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                size="sm"
+                title="Admin Panel"
+              >
+                <Settings className="w-5 h-5 text-white" />
+              </Button>
+            </Link>
             <Button
               onClick={logout}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
               size="sm"
             >
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"></path>
               </svg>
             </Button>
           </div>

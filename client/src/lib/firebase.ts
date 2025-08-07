@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
-import { getDatabase, ref, set, onValue, push, update, remove } from "firebase/database";
+import { getDatabase, ref, set, get, onValue, push, update, remove } from "firebase/database";
 
 // Hardcoded Firebase configuration for your project
 const firebaseConfig = {
@@ -30,6 +30,7 @@ export {
   updateProfile,
   ref,
   set,
+  get,
   onValue,
   push,
   update,
