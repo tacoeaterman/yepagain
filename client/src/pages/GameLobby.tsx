@@ -44,6 +44,17 @@ export default function GameLobby() {
     }
   }, [currentGame?.id, listenToGame]);
 
+  // Auto-redirect to game when game phase changes to 'playing'
+  useEffect(() => {
+    if (currentGame?.gamePhase === 'playing') {
+      toast({
+        title: "Game starting!",
+        description: "Redirecting to game...",
+      });
+      setLocation(`/game/${currentGame.gameCode}`);
+    }
+  }, [currentGame?.gamePhase, currentGame?.gameCode, setLocation, toast]);
+
   const copyGameCode = async () => {
     if (currentGame?.gameCode) {
       try {

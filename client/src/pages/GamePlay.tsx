@@ -114,7 +114,21 @@ export default function GamePlay() {
     );
   }
 
+  // Check if cards have been dealt
   const currentPlayer = currentGame.players[user.uid];
+  if (!currentPlayer?.hand || currentPlayer.hand.length === 0) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4 animate-spin">🃏</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Dealing cards...</h1>
+            <p className="text-white/70 mb-6">Please wait while cards are being dealt to all players.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
   const players = Object.values(currentGame.players);
   const sortedPlayers = players.sort((a, b) => (a.totalScore || 0) - (b.totalScore || 0));
   const progress = (currentGame.currentHole / currentGame.totalHoles) * 100;
