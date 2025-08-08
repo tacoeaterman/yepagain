@@ -185,6 +185,32 @@ export function useGame() {
     }
   };
 
+  const startGame = async (gameId: string) => {
+    if (!user) return;
+
+    try {
+      const gameRef = ref(database, `games/${gameId}`);
+      await update(gameRef, { 
+        gamePhase: 'playing',
+        gameActivity: [
+          ...(currentGame?.gameActivity || []),
+          `${user.displayName || user.email} started the game`
+        ]
+      });
+      
+      toast({
+        title: "Game started!",
+        description: "The game is now in progress",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error starting game",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const submitScore = async (gameId: string, holeIndex: number, score: number) => {
     if (!user || !currentGame) return;
 
@@ -242,6 +268,7 @@ export function useGame() {
     joinGame,
     listenToGame,
     findGameByCode,
+    startGame,
     submitScore,
     purchaseHosting,
   };

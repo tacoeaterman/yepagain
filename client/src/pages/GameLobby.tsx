@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function GameLobby() {
   const [match, params] = useRoute("/lobby/:gameCode");
-  const { currentGame, listenToGame, findGameByCode } = useGame();
+  const { currentGame, listenToGame, findGameByCode, startGame } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -146,9 +146,11 @@ export default function GameLobby() {
   const isHost = currentGame.hostId === user.uid;
   const players = Object.values(currentGame.players);
 
-  const handleStartGame = () => {
-    // Update game phase to playing
-    setLocation(`/game/${currentGame.gameCode}`);
+  const handleStartGame = async () => {
+    if (currentGame?.id) {
+      await startGame(currentGame.id);
+      setLocation(`/game/${currentGame.gameCode}`);
+    }
   };
 
   const handleLeaveGame = () => {

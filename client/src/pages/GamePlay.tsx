@@ -5,23 +5,91 @@ import { Input } from "@/components/ui/input";
 import { PlayerCard } from "@/components/PlayerCard";
 import { useGame } from "@/hooks/useGame";
 import { useAuth } from "@/hooks/useAuth";
-import { useRoute } from "wouter";
+import { useRoute, useLocation } from "wouter";
 
 export default function GamePlay() {
   const [match, params] = useRoute("/game/:gameCode");
-  const { currentGame, listenToGame, submitScore } = useGame();
+  const { currentGame, listenToGame, findGameByCode, submitScore } = useGame();
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   const [currentScore, setCurrentScore] = useState(3);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (match && params?.gameCode && currentGame?.id) {
+    if (match && params?.gameCode && !currentGame) {
+      setLoading(true);
+      findGameByCode(params.gameCode)
+        .then(() => {
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('Error finding game:', error);
+          setLoading(false);
+          setLocation("/");
+        });
+    }
+  }, [match, params?.gameCode, currentGame, findGameByCode, setLocation]);
+
+  useEffect(() => {
+    if (currentGame?.id) {
       const unsubscribe = listenToGame(currentGame.id);
       return unsubscribe;
     }
-  }, [match, params?.gameCode, currentGame?.id, listenToGame]);
+  }, [currentGame?.id, listenToGame]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4 animate-bounce">🥏</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Loading game...</h1>
+            <p className="text-white/70">Please wait while we load your game</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!currentGame || !user) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Game not found</h1>
+            <p className="text-white/70 mb-6">The game you're looking for doesn't exist or has been deleted.</p>
+            <Button
+              onClick={() => setLocation("/")}
+              className="bg-brand-accent text-white font-semibold py-3 px-6 rounded-xl hover:bg-brand-accent/90 transition-colors"
+            >
+              Back to Main Menu
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Check if game is in playing phase
+  if (currentGame.gamePhase !== 'playing') {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4">⏳</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Game not started</h1>
+            <p className="text-white/70 mb-6">The host hasn't started the game yet. Please wait in the lobby.</p>
+            <Button
+              onClick={() => setLocation(`/lobby/${currentGame.gameCode}`)}
+              className="bg-brand-accent text-white font-semibold py-3 px-6 rounded-xl hover:bg-brand-accent/90 transition-colors"
+            >
+              Back to Lobby
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const players = Object.values(currentGame.players);
@@ -100,34 +168,31 @@ export default function GamePlay() {
               <Button
                 key={button.value}
                 onClick={() => setCurrentScore(button.value)}
-                className={`p-4 rounded-xl font-semibold transition-colors ${
+                className={`p-4 rounded-xl font-semibold transition-colors border ${
                   currentScore === button.value
-                    ? `bg-${button.color === 'white' ? 'white/20 border-2 border-white/40' : `${button.color}-500/30 border-2 border-${button.color}-500/60`} text-${button.color === 'white' ? 'white' : `${button.color}-300`}`
-                    : `bg-${button.color === 'white' ? 'white/10' : `${button.color}-500/20`} text-${button.color === 'white' ? 'white' : `${button.color}-300`} hover:bg-${button.color === 'white' ? 'white/20' : `${button.color}-500/30`}`
+                    ? 'bg-white/20 border-white/40 text-white'
+                    : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
                 }`}
               >
-                {button.label}<br />
-                <span className="text-sm">{button.value}</span>
+                <div className="text-lg font-bold">{button.value}</div>
+                <div className="text-xs">{button.label}</div>
               </Button>
             ))}
           </div>
           
-          {/* Custom Score Input */}
+          {/* Manual Score Input */}
           <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <Input
-                type="number"
-                min="1"
-                max="15"
-                value={currentScore}
-                onChange={(e) => setCurrentScore(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-3 text-center text-xl font-bold rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:border-white/40"
-                placeholder="Custom"
-              />
-            </div>
+            <Input
+              type="number"
+              min="1"
+              max="10"
+              value={currentScore}
+              onChange={(e) => setCurrentScore(parseInt(e.target.value) || 3)}
+              className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-center text-2xl font-bold"
+            />
             <Button
               onClick={handleScoreSubmit}
-              className="bg-brand-accent text-white font-semibold px-8 py-3 rounded-xl hover:bg-brand-accent/90 transition-colors"
+              className="px-8 bg-brand-accent text-white font-semibold py-3 rounded-xl hover:bg-brand-accent/90 transition-colors"
             >
               Submit Score
             </Button>
