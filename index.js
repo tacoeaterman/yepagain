@@ -1,20 +1,22 @@
-const { onRequest } = require('firebase-functions/v2/https');
-const express = require('express');
-const path = require('path');
+import { onRequest } from 'firebase-functions/v2/https';
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { registerRoutes } from './dist/routes.js';
+import { serveStatic } from './dist/vite-prod.js';
 
-// Import your built server
-const { default: createServer } = require('./dist/index-prod.js');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-const app = express();
+const expressApp = express();
+
+// Register API routes (WebSockets not supported on CF)
+await registerRoutes(expressApp);
 
 // Serve static files from the built public directory
-app.use(express.static(path.join(__dirname, 'dist/public')));
+serveStatic(expressApp);
 
-// API routes and server setup
-createServer(app);
-
-// Export the Express app as a Firebase Function
-exports.app = onRequest({
+export const app = onRequest({
   memory: '1GiB',
   timeoutSeconds: 60
-}, app);
+}, expressApp);
