@@ -215,7 +215,18 @@ export function useGame() {
     if (!user || !currentGame) return;
 
     try {
-      const playerScores = [...(currentGame.players[user.uid].scores || [])];
+      // Ensure player exists and has scores array
+      const currentPlayer = currentGame.players[user.uid];
+      if (!currentPlayer) {
+        toast({
+          title: "Error",
+          description: "Player not found in game",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const playerScores = [...(currentPlayer.scores || [])];
       playerScores[holeIndex] = score;
       
       const totalScore = playerScores.reduce((sum, s) => sum + (s || 0), 0);

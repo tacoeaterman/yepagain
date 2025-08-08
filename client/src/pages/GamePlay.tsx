@@ -93,7 +93,7 @@ export default function GamePlay() {
   }
 
   const players = Object.values(currentGame.players);
-  const sortedPlayers = players.sort((a, b) => a.totalScore - b.totalScore);
+  const sortedPlayers = players.sort((a, b) => (a.totalScore || 0) - (b.totalScore || 0));
   const progress = (currentGame.currentHole / currentGame.totalHoles) * 100;
 
   const handleScoreSubmit = async () => {

@@ -20,6 +20,9 @@ export function PlayerCard({ player, position, showScore }: PlayerCardProps) {
     return "bg-white/20";
   };
 
+  // Calculate total strokes safely
+  const totalStrokes = (player.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+
   return (
     <div className={`flex items-center justify-between p-4 rounded-xl ${
       player.isHost ? 'bg-brand-gradient' : 'bg-white/5'
@@ -47,7 +50,7 @@ export function PlayerCard({ player, position, showScore }: PlayerCardProps) {
             {player.totalScore > 0 ? '+' : ''}{player.totalScore}
           </div>
           <div className="text-white/70 text-sm">
-            {player.scores.reduce((sum, score) => sum + score, 0)} strokes
+            {totalStrokes} strokes
           </div>
         </div>
       )}
