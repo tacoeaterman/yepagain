@@ -11,7 +11,7 @@ export interface GameState {
   id: string;
   gameCode: string;
   hostId: string;
-  roundName?: string;
+  courseName?: string;
   totalHoles: number;
   currentHole: number;
   currentPar: number;

@@ -15,7 +15,7 @@ export const games = pgTable("games", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   gameCode: varchar("game_code", { length: 6 }).notNull().unique(),
   hostId: varchar("host_id").notNull(),
-  roundName: text("round_name"),
+  courseName: text("course_name"),
   totalHoles: integer("total_holes").notNull(),
   currentHole: integer("current_hole").default(1),
   currentPar: integer("current_par").default(3),
