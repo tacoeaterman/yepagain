@@ -154,6 +154,37 @@ export function useGame() {
     });
   };
 
+  const findGameByCode = async (gameCode: string) => {
+    if (!user) return;
+
+    try {
+      const gamesRef = ref(database, 'games');
+      return new Promise((resolve, reject) => {
+        onValue(gamesRef, (snapshot) => {
+          const games = snapshot.val();
+          const gameEntry = Object.entries(games || {}).find(
+            ([, game]: [string, any]) => game.gameCode === gameCode.toUpperCase()
+          );
+
+          if (gameEntry) {
+            const [gameId, gameData] = gameEntry as [string, GameState];
+            setCurrentGame({ ...gameData, id: gameId });
+            resolve(gameData);
+          } else {
+            reject(new Error('Game not found'));
+          }
+        }, { onlyOnce: true });
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error finding game",
+        description: error.message,
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
   const submitScore = async (gameId: string, holeIndex: number, score: number) => {
     if (!user || !currentGame) return;
 
@@ -210,6 +241,7 @@ export function useGame() {
     createGame,
     joinGame,
     listenToGame,
+    findGameByCode,
     submitScore,
     purchaseHosting,
   };
