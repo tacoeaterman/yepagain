@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { database, ref, onValue, set, push, update } from '@/lib/firebase';
-import { GameState, Player } from '@/types/game';
+import { GameState, Player, Card, CARD_DECK } from '@/types/game';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
@@ -26,6 +26,45 @@ export function useGame() {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
 
+  // Create a shuffled deck of 65 cards
+  const createShuffledDeck = (): Card[] => {
+    const deck: Card[] = [];
+    
+    // Add cards based on their copies
+    CARD_DECK.forEach(card => {
+      for (let i = 0; i < card.copies; i++) {
+        deck.push({ ...card, id: `${card.id}_${i}` });
+      }
+    });
+    
+    // Shuffle the deck
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
+    }
+    
+    return deck;
+  };
+
+  // Deal cards to players
+  const dealCards = (players: Record<string, Player>, deck: Card[]): { players: Record<string, Player>, remainingDeck: Card[] } => {
+    const updatedPlayers = { ...players };
+    const remainingDeck = [...deck];
+    
+    Object.keys(updatedPlayers).forEach(playerId => {
+      const hand: Card[] = [];
+      // Deal 5 cards to each player
+      for (let i = 0; i < 5; i++) {
+        if (remainingDeck.length > 0) {
+          hand.push(remainingDeck.pop()!);
+        }
+      }
+      updatedPlayers[playerId].hand = hand;
+    });
+    
+    return { players: updatedPlayers, remainingDeck };
+  };
+
   const createGame = async (totalHoles: number, courseName?: string) => {
     if (!user || !hasHostingPrivilege) {
       toast({
@@ -39,6 +78,18 @@ export function useGame() {
     try {
       const gameCode = generateGameCode();
       const gameRef = push(ref(database, 'games'));
+      
+      // Create initial player data
+      const initialPlayer: Player = {
+        id: user.uid,
+        name: user.displayName || user.email!,
+        isHost: true,
+        isReady: true,
+        scores: [],
+        totalScore: 0,
+        hand: [], // Will be dealt when game starts
+      };
+
       const gameData: Partial<GameState> = {
         id: gameRef.key!,
         gameCode,
@@ -49,16 +100,12 @@ export function useGame() {
         currentPar: 3,
         gamePhase: 'lobby',
         players: {
-          [user.uid]: {
-            id: user.uid,
-            name: user.displayName || user.email!,
-            isHost: true,
-            isReady: true,
-            scores: [],
-            totalScore: 0,
-          }
+          [user.uid]: initialPlayer
         },
         gameActivity: [`${user.displayName || user.email} created the game`],
+        deck: [], // Will be created when game starts
+        discardPile: [],
+        gameRound: 'before_throw',
       };
 
       await set(gameRef, gameData);
@@ -118,6 +165,7 @@ export function useGame() {
           isReady: false,
           scores: [],
           totalScore: 0,
+          hand: [], // Will be dealt when game starts
         };
 
         const updates = {
@@ -186,25 +234,99 @@ export function useGame() {
   };
 
   const startGame = async (gameId: string) => {
-    if (!user) return;
+    if (!user || !currentGame) return;
 
     try {
+      // Create and shuffle the deck
+      const shuffledDeck = createShuffledDeck();
+      
+      // Deal cards to all players
+      const { players: dealtPlayers, remainingDeck } = dealCards(currentGame.players, shuffledDeck);
+      
+      // Set the first player's turn
+      const playerIds = Object.keys(dealtPlayers);
+      const firstPlayerId = playerIds[0];
+      
       const gameRef = ref(database, `games/${gameId}`);
       await update(gameRef, { 
         gamePhase: 'playing',
+        players: dealtPlayers,
+        deck: remainingDeck,
+        currentPlayerTurn: firstPlayerId,
+        gameRound: 'before_throw',
         gameActivity: [
-          ...(currentGame?.gameActivity || []),
-          `${user.displayName || user.email} started the game`
+          ...(currentGame.gameActivity || []),
+          `${user.displayName || user.email} started the game`,
+          'Cards have been dealt to all players!'
         ]
       });
       
       toast({
         title: "Game started!",
-        description: "The game is now in progress",
+        description: "Cards have been dealt to all players",
       });
     } catch (error: any) {
       toast({
         title: "Error starting game",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const playCard = async (gameId: string, cardId: string, targetPlayerId?: string) => {
+    if (!user || !currentGame) return;
+
+    try {
+      const currentPlayer = currentGame.players[user.uid];
+      if (!currentPlayer) {
+        toast({
+          title: "Error",
+          description: "Player not found in game",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Find the card in player's hand
+      const cardIndex = currentPlayer.hand.findIndex(card => card.id === cardId);
+      if (cardIndex === -1) {
+        toast({
+          title: "Error",
+          description: "Card not found in hand",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const playedCard = currentPlayer.hand[cardIndex];
+      
+      // Remove card from hand
+      const updatedHand = [...currentPlayer.hand];
+      updatedHand.splice(cardIndex, 1);
+      
+      // Add to discard pile
+      const updatedDiscardPile = [...(currentGame.discardPile || []), playedCard];
+      
+      // Update game state
+      const updates = {
+        [`games/${gameId}/players/${user.uid}/hand`]: updatedHand,
+        [`games/${gameId}/discardPile`]: updatedDiscardPile,
+        [`games/${gameId}/gameActivity`]: [
+          ...(currentGame.gameActivity || []),
+          `${user.displayName || user.email} played ${playedCard.name}`
+        ]
+      };
+
+      await update(ref(database), updates);
+      
+      toast({
+        title: "Card played!",
+        description: `${playedCard.name} has been played`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error playing card",
         description: error.message,
         variant: "destructive",
       });
@@ -280,6 +402,7 @@ export function useGame() {
     listenToGame,
     findGameByCode,
     startGame,
+    playCard,
     submitScore,
     purchaseHosting,
   };

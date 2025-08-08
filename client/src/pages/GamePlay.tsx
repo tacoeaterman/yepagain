@@ -1,19 +1,20 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PlayerCard } from "@/components/PlayerCard";
 import { useGame } from "@/hooks/useGame";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
+import { Card as CardType } from "@/types/game";
+import { Play, Eye, EyeOff } from "lucide-react";
 
 export default function GamePlay() {
   const [match, params] = useRoute("/game/:gameCode");
-  const { currentGame, listenToGame, findGameByCode, submitScore } = useGame();
+  const { currentGame, listenToGame, findGameByCode, playCard } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
-  const [currentScore, setCurrentScore] = useState(3);
   const [loading, setLoading] = useState(true);
+  const [showHand, setShowHand] = useState(true);
 
   useEffect(() => {
     if (match && params?.gameCode && !currentGame) {
@@ -36,6 +37,27 @@ export default function GamePlay() {
       return unsubscribe;
     }
   }, [currentGame?.id, listenToGame]);
+
+  const handlePlayCard = async (card: CardType) => {
+    if (currentGame?.id) {
+      await playCard(currentGame.id, card.id);
+    }
+  };
+
+  const getCardColor = (category: string) => {
+    switch (category) {
+      case 'Before Throw':
+        return 'bg-blue-500/20 border-blue-400/40';
+      case 'After Throw':
+        return 'bg-red-500/20 border-red-400/40';
+      case 'Self':
+        return 'bg-green-500/20 border-green-400/40';
+      case 'Wild':
+        return 'bg-purple-500/20 border-purple-400/40';
+      default:
+        return 'bg-white/10 border-white/20';
+    }
+  };
 
   if (loading) {
     return (
@@ -92,21 +114,11 @@ export default function GamePlay() {
     );
   }
 
+  const currentPlayer = currentGame.players[user.uid];
   const players = Object.values(currentGame.players);
   const sortedPlayers = players.sort((a, b) => (a.totalScore || 0) - (b.totalScore || 0));
   const progress = (currentGame.currentHole / currentGame.totalHoles) * 100;
-
-  const handleScoreSubmit = async () => {
-    await submitScore(currentGame.id, currentGame.currentHole - 1, currentScore);
-  };
-
-  const scoreButtons = [
-    { value: 1, label: "Ace", color: "green" },
-    { value: 2, label: "Eagle", color: "blue" },
-    { value: 3, label: "Par", color: "white" },
-    { value: 4, label: "Bogey", color: "yellow" },
-    { value: 5, label: "+2", color: "red" },
-  ];
+  const isCurrentPlayerTurn = currentGame.currentPlayerTurn === user.uid;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -120,10 +132,16 @@ export default function GamePlay() {
                 Hole {currentGame.currentHole} of {currentGame.totalHoles}
               </h1>
               <p className="text-white/70">{currentGame.courseName || 'Disc Golf Course'}</p>
+              <p className="text-white/70 text-sm">
+                Game Round: {currentGame.gameRound?.replace('_', ' ').toUpperCase()}
+              </p>
             </div>
             <div className="text-right">
               <div className="text-white/70 text-sm">Par</div>
               <div className="text-3xl font-bold text-white">{currentGame.currentPar}</div>
+              {isCurrentPlayerTurn && (
+                <div className="text-green-400 text-sm font-semibold mt-1">Your Turn!</div>
+              )}
             </div>
           </div>
           
@@ -140,10 +158,69 @@ export default function GamePlay() {
         </CardContent>
       </Card>
 
+      {/* Player's Hand */}
+      {currentPlayer && (
+        <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-white">Your Hand ({currentPlayer.hand?.length || 0} cards)</h3>
+              <Button
+                onClick={() => setShowHand(!showHand)}
+                variant="ghost"
+                className="text-white hover:bg-white/10"
+              >
+                {showHand ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showHand ? 'Hide' : 'Show'} Hand
+              </Button>
+            </div>
+            
+            {showHand && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {currentPlayer.hand.map((card) => (
+                  <Card key={card.id} className={`${getCardColor(card.category)} border-2 transition-all duration-200 hover:scale-105`}>
+                    <CardContent className="p-4">
+                      <div className="text-center">
+                        <div className="text-sm font-semibold text-white/70 mb-1">
+                          {card.category}
+                        </div>
+                        <h4 className="text-lg font-bold text-white mb-2">
+                          {card.name}
+                        </h4>
+                        <p className="text-white/80 text-sm mb-4 leading-relaxed">
+                          {card.description}
+                        </p>
+                        <Button
+                          onClick={() => handlePlayCard(card)}
+                          disabled={!isCurrentPlayerTurn}
+                          className="w-full bg-brand-accent text-white font-semibold py-2 rounded-xl hover:bg-brand-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Play className="w-4 h-4 mr-2" />
+                          Play Card
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : showHand ? (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">🃏</div>
+                <p className="text-white/70">No cards in hand</p>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="text-6xl mb-4">👁️</div>
+                <p className="text-white/70">Hand is hidden</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Leaderboard */}
       <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
         <CardContent className="p-0">
-          <h3 className="text-xl font-bold text-white mb-4">Leaderboard</h3>
+          <h3 className="text-xl font-bold text-white mb-4">Players</h3>
           <div className="space-y-3">
             {sortedPlayers.map((player, index) => (
               <PlayerCard 
@@ -151,68 +228,28 @@ export default function GamePlay() {
                 player={player} 
                 position={index + 1}
                 showScore
+                isCurrentTurn={player.id === currentGame.currentPlayerTurn}
               />
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Score Input */}
-      <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
-        <CardContent className="p-0">
-          <h3 className="text-xl font-bold text-white mb-4">Enter Your Score</h3>
-          
-          {/* Quick Score Buttons */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4">
-            {scoreButtons.map((button) => (
-              <Button
-                key={button.value}
-                onClick={() => setCurrentScore(button.value)}
-                className={`p-4 rounded-xl font-semibold transition-colors border ${
-                  currentScore === button.value
-                    ? 'bg-white/20 border-white/40 text-white'
-                    : 'bg-white/10 border-white/20 text-white hover:bg-white/20'
-                }`}
-              >
-                <div className="text-lg font-bold">{button.value}</div>
-                <div className="text-xs">{button.label}</div>
-              </Button>
-            ))}
-          </div>
-          
-          {/* Manual Score Input */}
-          <div className="flex items-center space-x-4">
-            <Input
-              type="number"
-              min="1"
-              max="10"
-              value={currentScore}
-              onChange={(e) => setCurrentScore(parseInt(e.target.value) || 3)}
-              className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white text-center text-2xl font-bold"
-            />
-            <Button
-              onClick={handleScoreSubmit}
-              className="px-8 bg-brand-accent text-white font-semibold py-3 rounded-xl hover:bg-brand-accent/90 transition-colors"
-            >
-              Submit Score
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Hole Activity */}
-      <Card className="glass-card rounded-3xl p-6 border-0">
-        <CardContent className="p-0">
-          <h3 className="text-xl font-bold text-white mb-4">Hole Activity</h3>
-          <div className="space-y-2">
-            {currentGame.gameActivity.slice(-5).map((activity, index) => (
-              <div key={index} className="text-white/70 text-sm">
-                {activity}
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Game Activity */}
+      {currentGame.gameActivity && currentGame.gameActivity.length > 0 && (
+        <Card className="glass-card rounded-3xl p-6 border-0">
+          <CardContent className="p-0">
+            <h3 className="text-xl font-bold text-white mb-4">Game Activity</h3>
+            <div className="space-y-2 max-h-40 overflow-y-auto">
+              {currentGame.gameActivity.slice(-10).map((activity, index) => (
+                <div key={index} className="text-white/70 text-sm p-2 bg-white/5 rounded-lg">
+                  {activity}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
