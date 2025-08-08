@@ -38,6 +38,11 @@ export function serveStatic(app: Express) {
     }
   }));
 
+  // Handle favicon.ico requests
+  app.get('/favicon.ico', (req, res) => {
+    res.status(404).end();
+  });
+
   // Only fall through to index.html for actual routes (not for static assets)
   app.get('*', (req, res, next) => {
     // Skip if it's a static asset request

@@ -233,6 +233,9 @@ function serveStatic(app) {
       }
     }
   }));
+  app.get("/favicon.ico", (req, res) => {
+    res.status(404).end();
+  });
   app.get("*", (req, res, next) => {
     if (req.path.startsWith("/assets/") || req.path.includes(".")) {
       return next();
