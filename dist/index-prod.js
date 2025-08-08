@@ -228,8 +228,12 @@ function serveStatic(app) {
     setHeaders: (res, path2) => {
       if (path2.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       } else if (path2.endsWith(".css")) {
         res.setHeader("Content-Type", "text/css");
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      } else if (path2.endsWith(".html")) {
+        res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
       }
     }
   }));

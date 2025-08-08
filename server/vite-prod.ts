@@ -27,13 +27,17 @@ export function serveStatic(app: Express) {
     );
   }
 
-  // Serve static files with proper MIME types
+  // Serve static files with proper MIME types and cache control
   app.use(express.static(distPath, {
     setHeaders: (res, path) => {
       if (path.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       } else if (path.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css');
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      } else if (path.endsWith('.html')) {
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       }
     }
   }));
