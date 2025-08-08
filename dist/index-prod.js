@@ -229,14 +229,28 @@ function serveStatic(app) {
       if (path2.endsWith(".js")) {
         res.setHeader("Content-Type", "application/javascript");
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
       } else if (path2.endsWith(".css")) {
         res.setHeader("Content-Type", "text/css");
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
       } else if (path2.endsWith(".html")) {
         res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.setHeader("Pragma", "no-cache");
+        res.setHeader("Expires", "0");
       }
     }
   }));
+  app.use((req, res, next) => {
+    if (req.path.endsWith(".html")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+    next();
+  });
   app.get("/favicon.ico", (req, res) => {
     res.status(404).end();
   });

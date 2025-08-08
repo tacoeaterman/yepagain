@@ -33,14 +33,30 @@ export function serveStatic(app: Express) {
       if (path.endsWith('.js')) {
         res.setHeader('Content-Type', 'application/javascript');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
       } else if (path.endsWith('.css')) {
         res.setHeader('Content-Type', 'text/css');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
       } else if (path.endsWith('.html')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
       }
     }
   }));
+
+  // Add cache-busting middleware for HTML files
+  app.use((req, res, next) => {
+    if (req.path.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+    next();
+  });
 
   // Handle favicon.ico requests
   app.get('/favicon.ico', (req, res) => {
