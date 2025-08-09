@@ -80,7 +80,9 @@ export default function GamePlay() {
   const allPlayersScoredCurrentHole = () => {
     if (!currentGame) return false;
     const idx = currentGame.currentHole - 1;
-    return Object.values(currentGame.players).every(p => typeof p.scores?.[idx] === 'number');
+    const parIsSet = currentGame.parsSet?.[idx] ?? false;
+    // Can only advance if par is set AND all players have submitted scores
+    return parIsSet && Object.values(currentGame.players).every(p => typeof p.scores?.[idx] === 'number');
   };
 
   const handleAdvanceHole = async () => {
@@ -241,27 +243,45 @@ export default function GamePlay() {
       {/* Your Score Entry */}
       <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
         <CardContent className="p-0">
-          <div className="flex items-end space-x-3">
-            <div className="flex-1">
-              <div className="text-white/80 text-sm mb-1">
-                Your strokes for hole {currentGame.currentHole} (Par {currentGame.currentPar})
-              </div>
-              <Input
-                type="number"
-                min={1}
-                value={myHoleScore}
-                onChange={(e) => setMyHoleScore(e.target.value === '' ? '' : Number(e.target.value))}
-                className="bg-white/10 border-white/20 text-white"
-                placeholder="Enter strokes"
-              />
-              {myHoleScore !== "" && typeof myHoleScore === 'number' && (
-                <div className="text-white/60 text-xs mt-1">
-                  Golf score: {myHoleScore - (currentGame.currentPar || 3) > 0 ? '+' : ''}{myHoleScore - (currentGame.currentPar || 3)}
+          {(() => {
+            const holeIndex = currentGame.currentHole - 1;
+            const parIsSet = currentGame.parsSet?.[holeIndex] ?? false;
+            
+            return (
+              <div className="flex items-end space-x-3">
+                <div className="flex-1">
+                  <div className="text-white/80 text-sm mb-1">
+                    Your strokes for hole {currentGame.currentHole} (Par {currentGame.currentPar})
+                  </div>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={myHoleScore}
+                    onChange={(e) => setMyHoleScore(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="bg-white/10 border-white/20 text-white"
+                    placeholder={parIsSet ? "Enter strokes" : "Waiting for host to set par..."}
+                    disabled={!parIsSet}
+                  />
+                  {!parIsSet ? (
+                    <div className="text-yellow-400 text-xs mt-1">
+                      ⏳ Host must set par before you can submit your score
+                    </div>
+                  ) : myHoleScore !== "" && typeof myHoleScore === 'number' ? (
+                    <div className="text-white/60 text-xs mt-1">
+                      Golf score: {myHoleScore - (currentGame.currentPar || 3) > 0 ? '+' : ''}{myHoleScore - (currentGame.currentPar || 3)}
+                    </div>
+                  ) : null}
                 </div>
-              )}
-            </div>
-            <Button onClick={handleSubmitScore} className="bg-brand-accent text-white h-10 px-6">Submit Score</Button>
-          </div>
+                <Button 
+                  onClick={handleSubmitScore} 
+                  disabled={!parIsSet || myHoleScore === ""} 
+                  className="bg-brand-accent text-white h-10 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Submit Score
+                </Button>
+              </div>
+            );
+          })()}
         </CardContent>
       </Card>
 

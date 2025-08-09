@@ -28,6 +28,7 @@ export interface GameState {
   currentHole: number;
   currentPar: number;
   pars?: number[]; // Per-hole par values indexed by (hole - 1)
+  parsSet?: boolean[]; // Track which holes have had par explicitly set by host
   gamePhase: 'lobby' | 'playing' | 'finished';
   players: Record<string, Player>;
   gameActivity: string[];

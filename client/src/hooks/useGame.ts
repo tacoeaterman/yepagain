@@ -100,6 +100,7 @@ export function useGame() {
         currentHole: 1,
         currentPar: 3,
         pars: Array.from({ length: totalHoles }, () => 3),
+        parsSet: Array.from({ length: totalHoles }, () => false), // Track which holes have par set
         gamePhase: 'lobby',
         players: {
           [user.uid]: initialPlayer
@@ -337,6 +338,17 @@ export function useGame() {
     if (!user || !currentGame) return;
 
     try {
+      // Check if par has been set for this hole
+      const parIsSet = currentGame.parsSet?.[holeIndex] ?? false;
+      if (!parIsSet) {
+        toast({
+          title: "Cannot submit score",
+          description: "The host must set par for this hole first",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Ensure player exists and has scores array
       const currentPlayer = currentGame.players[user.uid];
       if (!currentPlayer) {
@@ -392,9 +404,14 @@ export function useGame() {
 
     const nextPars = [...(currentGame.pars || Array.from({ length: currentGame.totalHoles }, () => 3))];
     nextPars[(currentGame.currentHole - 1)] = par;
+    
+    const nextParsSet = [...(currentGame.parsSet || Array.from({ length: currentGame.totalHoles }, () => false))];
+    nextParsSet[(currentGame.currentHole - 1)] = true;
+    
     await update(ref(database, `games/${gameId}`), {
       currentPar: par,
       pars: nextPars,
+      parsSet: nextParsSet,
       gameActivity: [
         ...(currentGame.gameActivity || []),
         `Par set to ${par} for hole ${currentGame.currentHole}`,
