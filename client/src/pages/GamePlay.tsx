@@ -55,7 +55,8 @@ export default function GamePlay() {
     if (!currentGame || !user) return;
     setParInput(currentGame.currentPar ?? "");
     const holeIndex = currentGame.currentHole - 1;
-    const existing = currentGame.players[user.uid]?.scores?.[holeIndex];
+    // Use strokes (raw count) for input, not golf scores
+    const existing = currentGame.players[user.uid]?.strokes?.[holeIndex];
     setMyHoleScore(typeof existing === 'number' ? existing : "");
   }, [currentGame?.currentHole, currentGame?.currentPar, currentGame?.id, user?.uid]);
 
@@ -160,21 +161,6 @@ export default function GamePlay() {
   // Check if cards have been dealt
   const currentPlayer = currentGame.players[user.uid];
   
-  // Debug: Log player state
-  console.log('🎮 GamePlay Debug:', {
-    userId: user.uid,
-    currentPlayer: currentPlayer ? {
-      id: currentPlayer.id,
-      name: currentPlayer.name,
-      hasHand: !!currentPlayer.hand,
-      handLength: currentPlayer.hand?.length || 0,
-      isHost: currentPlayer.isHost
-    } : null,
-    gamePhase: currentGame.gamePhase,
-    totalPlayers: Object.keys(currentGame.players).length,
-    allPlayerIds: Object.keys(currentGame.players)
-  });
-  
   if (!currentPlayer) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -257,7 +243,9 @@ export default function GamePlay() {
         <CardContent className="p-0">
           <div className="flex items-end space-x-3">
             <div className="flex-1">
-              <div className="text-white/80 text-sm mb-1">Your strokes for hole {currentGame.currentHole}</div>
+              <div className="text-white/80 text-sm mb-1">
+                Your strokes for hole {currentGame.currentHole} (Par {currentGame.currentPar})
+              </div>
               <Input
                 type="number"
                 min={1}
@@ -266,6 +254,11 @@ export default function GamePlay() {
                 className="bg-white/10 border-white/20 text-white"
                 placeholder="Enter strokes"
               />
+              {myHoleScore !== "" && typeof myHoleScore === 'number' && (
+                <div className="text-white/60 text-xs mt-1">
+                  Golf score: {myHoleScore - (currentGame.currentPar || 3) > 0 ? '+' : ''}{myHoleScore - (currentGame.currentPar || 3)}
+                </div>
+              )}
             </div>
             <Button onClick={handleSubmitScore} className="bg-brand-accent text-white h-10 px-6">Submit Score</Button>
           </div>

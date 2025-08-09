@@ -85,6 +85,7 @@ export function useGame() {
         name: user.displayName || user.email!,
         isHost: true,
         isReady: true,
+        strokes: [],
         scores: [],
         totalScore: 0,
         hand: [], // Will be dealt when game starts
@@ -164,6 +165,7 @@ export function useGame() {
           name: user.displayName || user.email!,
           isHost: false,
           isReady: false,
+          strokes: [],
           scores: [],
           totalScore: 0,
           hand: [], // Will be dealt when game starts
@@ -346,21 +348,33 @@ export function useGame() {
         return;
       }
 
-      const playerScores = [...(currentPlayer.scores || [])];
-      playerScores[holeIndex] = score;
+      // Store raw strokes for the hole
+      const playerStrokes = [...(currentPlayer.strokes || [])];
+      playerStrokes[holeIndex] = score;
       
+      // Calculate golf score (strokes - par) for this hole
+      const holeParValue = currentGame.pars?.[holeIndex] ?? currentGame.currentPar ?? 3;
+      const holeGolfScore = score - holeParValue;
+      
+      // Store golf scores for each hole
+      const playerScores = [...(currentPlayer.scores || [])];
+      playerScores[holeIndex] = holeGolfScore;
+      
+      // Calculate total golf score (sum of all hole scores relative to par)
       const totalScore = playerScores.reduce((sum, s) => sum + (s || 0), 0);
       
       const updates = {
+        [`games/${gameId}/players/${user.uid}/strokes`]: playerStrokes,
         [`games/${gameId}/players/${user.uid}/scores`]: playerScores,
         [`games/${gameId}/players/${user.uid}/totalScore`]: totalScore,
       };
 
       await update(ref(database), updates);
       
+      const scoreDisplay = holeGolfScore > 0 ? `+${holeGolfScore}` : holeGolfScore.toString();
       toast({
         title: "Score submitted!",
-        description: `Hole ${holeIndex + 1}: ${score} strokes`,
+        description: `Hole ${holeIndex + 1}: ${score} strokes (${scoreDisplay})`,
       });
     } catch (error: any) {
       toast({

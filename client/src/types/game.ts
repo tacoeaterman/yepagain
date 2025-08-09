@@ -3,8 +3,9 @@ export interface Player {
   name: string;
   isHost: boolean;
   isReady: boolean;
-  scores: number[];
-  totalScore: number;
+  strokes?: number[]; // Raw stroke counts for each hole
+  scores: number[]; // Golf scores (strokes - par) for each hole
+  totalScore: number; // Total golf score (sum of hole scores)
   hand: Card[]; // Player's dealt cards
   position?: number; // Current position in game
 }

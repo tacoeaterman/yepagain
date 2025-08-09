@@ -22,7 +22,7 @@ export function PlayerCard({ player, position, showScore }: PlayerCardProps) {
   };
 
   // Calculate total strokes safely
-  const totalStrokes = (player.scores || []).reduce((sum, score) => sum + (score || 0), 0);
+  const totalStrokes = (player.strokes || []).reduce((sum, strokes) => sum + (strokes || 0), 0);
 
   return (
     <div className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
