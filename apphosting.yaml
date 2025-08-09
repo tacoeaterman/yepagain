@@ -1,20 +1,19 @@
 runConfig:
   runtime: nodejs22
-  
+
 buildConfig:
   runtime: nodejs22
   commands:
     - npm ci
-    
-env:
-  - variable: NODE_ENV
-    value: production
-    availability:
-      - BUILD
-      - RUNTIME
-  - variable: GOOGLE_NODE_RUN_SCRIPTS
-    value: ""
-    availability:
-      - BUILD
-      - RUNTIME
+  env:
+    - variable: NODE_ENV
+      value: production
+      availability:
+        - BUILD
+        - RUNTIME
+    - variable: GOOGLE_NODE_RUN_SCRIPTS
+      value: ""
+      availability:
+        - BUILD
+        - RUNTIME
 
