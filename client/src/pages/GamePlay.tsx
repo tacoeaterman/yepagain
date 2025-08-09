@@ -247,6 +247,8 @@ export default function GamePlay() {
             const holeIndex = currentGame.currentHole - 1;
             const parIsSet = currentGame.parsSet?.[holeIndex] ?? false;
             
+
+            
             return (
               <div className="flex items-end space-x-3">
                 <div className="flex-1">

@@ -408,7 +408,7 @@ export function useGame() {
     const nextParsSet = [...(currentGame.parsSet || Array.from({ length: currentGame.totalHoles }, () => false))];
     nextParsSet[(currentGame.currentHole - 1)] = true;
     
-    await update(ref(database, `games/${gameId}`), {
+    const updates = {
       currentPar: par,
       pars: nextPars,
       parsSet: nextParsSet,
@@ -416,7 +416,11 @@ export function useGame() {
         ...(currentGame.gameActivity || []),
         `Par set to ${par} for hole ${currentGame.currentHole}`,
       ],
-    });
+    };
+    
+
+    
+    await update(ref(database, `games/${gameId}`), updates);
   };
 
   // Advance to the next hole; deal a card to last place every third hole; finish game at end
@@ -438,12 +442,19 @@ export function useGame() {
     }
     let updates: Record<string, any> = {
       [`games/${gameId}/currentHole`]: nextHole,
-      [`games/${gameId}/currentPar`]: (currentGame.pars?.[nextHole - 1]) ?? 3,
       [`games/${gameId}/gameActivity`]: [
         ...(currentGame.gameActivity || []),
         `Advanced to hole ${nextHole}`,
       ],
     };
+
+    // Only set currentPar if it was previously set by host for this hole
+    if (currentGame.parsSet?.[nextHole - 1]) {
+      updates[`games/${gameId}/currentPar`] = currentGame.pars?.[nextHole - 1] ?? 3;
+    } else {
+      // Reset currentPar to indicate no par is set yet
+      updates[`games/${gameId}/currentPar`] = 3; // Default for display, but parsSet[hole] will be false
+    }
 
     // Every third hole completed (i.e., moving to 4, 7, 10, ...), reward last place
     if ((nextHole - 1) % 3 === 0) {
