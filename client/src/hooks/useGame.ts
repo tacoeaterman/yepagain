@@ -388,6 +388,36 @@ export function useGame() {
         title: "Score submitted!",
         description: `Hole ${holeIndex + 1}: ${score} strokes (${scoreDisplay})`,
       });
+
+      // Check if all players have now scored for this hole (including the player who just scored)
+      const checkAllPlayersScoredAndAdvance = () => {
+        if (!currentGame) return;
+        const idx = currentGame.currentHole - 1;
+        const parIsSet = currentGame.parsSet?.[idx] ?? false;
+        
+        // Only check if all players scored if par is set
+        if (!parIsSet) return;
+        
+        // Check if all players (including the one who just scored) have scores for this hole
+        const allPlayersScored = Object.values(currentGame.players).every(player => {
+          // For the current player who just scored, use the updated scores
+          if (player.id === user.uid) {
+            return typeof playerScores[idx] === 'number';
+          }
+          // For other players, check their existing scores
+          return typeof player.scores?.[idx] === 'number';
+        });
+        
+        if (allPlayersScored) {
+          // Small delay to let the toast show, then auto-advance
+          setTimeout(() => {
+            advanceToNextHole(gameId);
+          }, 1500);
+        }
+      };
+
+      // Check and auto-advance if all players have scored
+      checkAllPlayersScoredAndAdvance();
     } catch (error: any) {
       toast({
         title: "Error submitting score",

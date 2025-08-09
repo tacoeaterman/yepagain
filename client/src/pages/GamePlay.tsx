@@ -383,11 +383,30 @@ export default function GamePlay() {
       {isHost && (
         <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
           <CardContent className="p-0">
-            <div className="flex items-center justify-between">
-              <div className="text-white/80 text-sm">All players submitted score for hole {currentGame.currentHole}?</div>
-              <Button onClick={handleAdvanceHole} disabled={!allPlayersScoredCurrentHole()} className="bg-white/10 text-white hover:bg-white/20 disabled:opacity-50">
-                Advance to Next Hole
-              </Button>
+            {allPlayersScoredCurrentHole() ? (
+              <div className="flex items-center justify-center space-x-2 text-green-400">
+                <div className="animate-spin text-lg">⚡</div>
+                <div className="text-sm">Auto-advancing to next hole...</div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="text-white/80 text-sm">Waiting for all players to submit scores for hole {currentGame.currentHole}</div>
+                <Button onClick={handleAdvanceHole} disabled={!allPlayersScoredCurrentHole()} className="bg-white/10 text-white hover:bg-white/20 disabled:opacity-50">
+                  Manual Advance
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Auto-advance indicator for non-host players */}
+      {!isHost && allPlayersScoredCurrentHole() && (
+        <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
+          <CardContent className="p-0">
+            <div className="flex items-center justify-center space-x-2 text-green-400">
+              <div className="animate-spin text-lg">⚡</div>
+              <div className="text-sm">Advancing to next hole...</div>
             </div>
           </CardContent>
         </Card>
