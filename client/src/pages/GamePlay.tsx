@@ -159,7 +159,37 @@ export default function GamePlay() {
 
   // Check if cards have been dealt
   const currentPlayer = currentGame.players[user.uid];
-  if (!currentPlayer?.hand || currentPlayer.hand.length === 0) {
+  
+  // Debug: Log player state
+  console.log('🎮 GamePlay Debug:', {
+    userId: user.uid,
+    currentPlayer: currentPlayer ? {
+      id: currentPlayer.id,
+      name: currentPlayer.name,
+      hasHand: !!currentPlayer.hand,
+      handLength: currentPlayer.hand?.length || 0,
+      isHost: currentPlayer.isHost
+    } : null,
+    gamePhase: currentGame.gamePhase,
+    totalPlayers: Object.keys(currentGame.players).length,
+    allPlayerIds: Object.keys(currentGame.players)
+  });
+  
+  if (!currentPlayer) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Player not found</h1>
+            <p className="text-white/70 mb-6">You are not a player in this game.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+  
+  if (!currentPlayer.hand || currentPlayer.hand.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Card className="glass-card rounded-3xl p-8 text-center border-0">
