@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile } from "firebase/auth";
-import { getDatabase, ref, set, onValue, push, update, remove } from "firebase/database";
+import { getDatabase, ref, set, onValue, push, update, remove, get } from "firebase/database";
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "demo-key",
@@ -25,5 +25,6 @@ export {
   onValue,
   push,
   update,
-  remove
+  remove,
+  get
 };

@@ -7,7 +7,7 @@ interface PlayerCardProps {
   isCurrentTurn?: boolean;
 }
 
-export function PlayerCard({ player, position, showScore, isCurrentTurn }: PlayerCardProps) {
+export function PlayerCard({ player, position, showScore }: PlayerCardProps) {
   const getScoreColor = (score: number, par: number = 0) => {
     if (score < par) return "text-green-400";
     if (score === par) return "text-white";
@@ -27,7 +27,7 @@ export function PlayerCard({ player, position, showScore, isCurrentTurn }: Playe
   return (
     <div className={`flex items-center justify-between p-4 rounded-xl transition-all duration-200 ${
       player.isHost ? 'bg-brand-gradient' : 'bg-white/5'
-    } ${isCurrentTurn ? 'ring-2 ring-green-400 ring-opacity-50' : ''}`}>
+    }`}>
       <div className="flex items-center space-x-3">
         {position && (
           <div className={`w-8 h-8 ${getPositionBg(position)} rounded-full flex items-center justify-center`}>
@@ -40,9 +40,6 @@ export function PlayerCard({ player, position, showScore, isCurrentTurn }: Playe
         <div>
           <div className="text-white font-semibold flex items-center">
             {player.name}
-            {isCurrentTurn && (
-              <span className="ml-2 text-green-400 text-sm font-bold">← TURN</span>
-            )}
           </div>
           <div className="text-white/70 text-sm">
             {player.isHost ? '👑 Host' : 'Player'}

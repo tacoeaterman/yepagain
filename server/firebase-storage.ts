@@ -37,8 +37,8 @@ export class FirebaseStorage implements IStorage {
       const snapshot = await get(usersRef);
       if (!snapshot.exists()) return undefined;
       
-      const users = snapshot.val();
-      return Object.values(users).find((user: any) => user.email === email);
+      const users = snapshot.val() as Record<string, User>;
+      return Object.values(users).find((user) => user.email === email);
     } catch (error) {
       console.error('Error getting user by email:', error);
       return undefined;
@@ -52,7 +52,7 @@ export class FirebaseStorage implements IStorage {
         ...insertUser, 
         id,
         hasHostingPrivilege: insertUser.hasHostingPrivilege ?? false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date()
       };
       
       const userRef = ref(database, `users/${id}`);
@@ -99,8 +99,8 @@ export class FirebaseStorage implements IStorage {
       const snapshot = await get(gamesRef);
       if (!snapshot.exists()) return undefined;
       
-      const games = snapshot.val();
-      return Object.values(games).find((game: any) => game.gameCode === gameCode.toUpperCase());
+      const games = snapshot.val() as Record<string, Game>;
+      return Object.values(games).find((game) => game.gameCode === gameCode.toUpperCase());
     } catch (error) {
       console.error('Error getting game by code:', error);
       return undefined;
@@ -122,7 +122,7 @@ export class FirebaseStorage implements IStorage {
         players: insertGame.players ?? {},
         scores: insertGame.scores ?? {},
         gameActivity: insertGame.gameActivity ?? [],
-        createdAt: new Date().toISOString()
+        createdAt: new Date()
       };
       
       const gameRef = ref(database, `games/${id}`);

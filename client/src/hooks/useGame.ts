@@ -98,14 +98,15 @@ export function useGame() {
         totalHoles,
         currentHole: 1,
         currentPar: 3,
+        pars: Array.from({ length: totalHoles }, () => 3),
         gamePhase: 'lobby',
         players: {
           [user.uid]: initialPlayer
         },
         gameActivity: [`${user.displayName || user.email} created the game`],
-        deck: [], // Will be created when game starts
+         deck: [], // Will be created when game starts
         discardPile: [],
-        gameRound: 'before_throw',
+         gameRound: 'before_throw',
       };
 
       await set(gameRef, gameData);
@@ -197,7 +198,8 @@ export function useGame() {
     return onValue(gameRef, (snapshot) => {
       const gameData = snapshot.val();
       if (gameData) {
-        setCurrentGame(gameData);
+        // Preserve the id so subscribers don't lose the identifier
+        setCurrentGame((prev) => ({ ...gameData, id: gameId }));
       }
     });
   };
@@ -243,17 +245,13 @@ export function useGame() {
       // Deal cards to all players
       const { players: dealtPlayers, remainingDeck } = dealCards(currentGame.players, shuffledDeck);
       
-      // Set the first player's turn
-      const playerIds = Object.keys(dealtPlayers);
-      const firstPlayerId = playerIds[0];
-      
       const gameRef = ref(database, `games/${gameId}`);
       await update(gameRef, { 
         gamePhase: 'playing',
         players: dealtPlayers,
         deck: remainingDeck,
-        currentPlayerTurn: firstPlayerId,
-        gameRound: 'before_throw',
+        currentPlayerTurn: null,
+        gameRound: 'scoring',
         gameActivity: [
           ...(currentGame.gameActivity || []),
           `${user.displayName || user.email} started the game`,
@@ -314,7 +312,7 @@ export function useGame() {
         [`games/${gameId}/discardPile`]: updatedDiscardPile,
         [`games/${gameId}/gameActivity`]: [
           ...(currentGame.gameActivity || []),
-          `${user.displayName || user.email} played ${playedCard.name}`
+          `${user.displayName || user.email} played ${playedCard.name}` + (targetPlayerId ? ` on ${currentGame.players[targetPlayerId]?.name || 'a player'}` : '')
         ]
       };
 
@@ -373,6 +371,77 @@ export function useGame() {
     }
   };
 
+  // Host sets par for the current hole
+  const setParForHole = async (gameId: string, par: number) => {
+    if (!user || !currentGame) return;
+    if (user.uid !== currentGame.hostId) return; // only host
+
+    const nextPars = [...(currentGame.pars || Array.from({ length: currentGame.totalHoles }, () => 3))];
+    nextPars[(currentGame.currentHole - 1)] = par;
+    await update(ref(database, `games/${gameId}`), {
+      currentPar: par,
+      pars: nextPars,
+      gameActivity: [
+        ...(currentGame.gameActivity || []),
+        `Par set to ${par} for hole ${currentGame.currentHole}`,
+      ],
+    });
+  };
+
+  // Advance to the next hole; deal a card to last place every third hole; finish game at end
+  const advanceToNextHole = async (gameId: string) => {
+    if (!user || !currentGame) return;
+
+    const nextHole = currentGame.currentHole + 1;
+    // If we've completed the last hole, finish the game
+    if (nextHole > currentGame.totalHoles) {
+      await update(ref(database, `games/${gameId}`), {
+        gamePhase: 'finished',
+        gameActivity: [
+          ...(currentGame.gameActivity || []),
+          'Game finished!'
+        ],
+      });
+      toast({ title: 'Round complete!', description: 'Game has been finished.' });
+      return;
+    }
+    let updates: Record<string, any> = {
+      [`games/${gameId}/currentHole`]: nextHole,
+      [`games/${gameId}/currentPar`]: (currentGame.pars?.[nextHole - 1]) ?? 3,
+      [`games/${gameId}/gameActivity`]: [
+        ...(currentGame.gameActivity || []),
+        `Advanced to hole ${nextHole}`,
+      ],
+    };
+
+    // Every third hole completed (i.e., moving to 4, 7, 10, ...), reward last place
+    if ((nextHole - 1) % 3 === 0) {
+      // compute last place by highest totalScore
+      const playersArr = Object.values(currentGame.players);
+      const lastPlace = playersArr.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))[0];
+      if (lastPlace) {
+        // draw one card from deck
+        const deckCopy = [...(currentGame.deck || [])];
+        const drawn = deckCopy.pop();
+        if (drawn) {
+          const lastHand = [...(currentGame.players[lastPlace.id]?.hand || [])];
+          lastHand.push(drawn);
+          updates = {
+            ...updates,
+            [`games/${gameId}/deck`]: deckCopy,
+            [`games/${gameId}/players/${lastPlace.id}/hand`]: lastHand,
+            [`games/${gameId}/gameActivity`]: [
+              ...(updates[`games/${gameId}/gameActivity`] || []),
+              `${lastPlace.name} received a bonus card for being in last place`,
+            ],
+          };
+        }
+      }
+    }
+
+    await update(ref(database), updates);
+  };
+
   const purchaseHosting = async () => {
     if (!user) return;
 
@@ -404,6 +473,8 @@ export function useGame() {
     startGame,
     playCard,
     submitScore,
+    setParForHole,
+    advanceToNextHole,
     purchaseHosting,
   };
 }

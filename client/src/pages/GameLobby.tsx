@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerCard } from "@/components/PlayerCard";
 import { useGame } from "@/hooks/useGame";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation, useRoute } from "wouter";
 import { Copy, MessageCircle, Share2, Check } from "lucide-react";
@@ -10,12 +11,13 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function GameLobby() {
   const [match, params] = useRoute("/lobby/:gameCode");
-  const { currentGame, listenToGame, findGameByCode, startGame } = useGame();
+  const { currentGame, listenToGame, findGameByCode, startGame, setParForHole } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [parInput, setParInput] = useState<number | "">("");
 
   useEffect(() => {
     if (match && params?.gameCode && !currentGame) {
@@ -43,6 +45,12 @@ export default function GameLobby() {
       return unsubscribe;
     }
   }, [currentGame?.id, listenToGame]);
+
+  useEffect(() => {
+    if (currentGame) {
+      setParInput(currentGame.currentPar ?? "");
+    }
+  }, [currentGame?.currentPar]);
 
   // Auto-redirect to game when game phase changes to 'playing'
   useEffect(() => {
@@ -164,6 +172,12 @@ export default function GameLobby() {
     }
   };
 
+  const handleUpdatePar = async () => {
+    if (!currentGame?.id || parInput === "") return;
+    await setParForHole(currentGame.id, Number(parInput));
+    toast({ title: "Par set", description: `Par set to ${parInput} for hole 1` });
+  };
+
   const handleLeaveGame = () => {
     setLocation("/");
   };
@@ -260,7 +274,19 @@ export default function GameLobby() {
         <Card className="glass-card rounded-3xl p-6 border-0">
           <CardContent className="p-0">
             <h3 className="text-xl font-bold text-white mb-4">Host Controls</h3>
-            <div className="flex space-x-4">
+            <div className="flex flex-col md:flex-row md:items-end md:space-x-4 space-y-4 md:space-y-0">
+              <div className="flex-1">
+                <div className="text-white/80 text-sm mb-1">Par for hole 1</div>
+                <Input
+                  type="number"
+                  min={1}
+                  value={parInput}
+                  onChange={(e) => setParInput(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="bg-white/10 border-white/20 text-white"
+                  placeholder="Par"
+                />
+              </div>
+              <Button onClick={handleUpdatePar} className="bg-white/10 text-white hover:bg-white/20">Set Par</Button>
               <Button
                 onClick={handleStartGame}
                 disabled={players.length < 1}
