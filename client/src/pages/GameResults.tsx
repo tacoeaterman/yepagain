@@ -86,6 +86,18 @@ export default function GameResults() {
   const sortedPlayers = players.sort((a, b) => a.totalScore - b.totalScore);
   const winner = sortedPlayers[0];
 
+  // Calculate birdies (scores of -1) for each player
+  const playersWithBirdies = players.map(player => ({
+    ...player,
+    birdieCount: (player.scores || []).filter(score => score === -1).length
+  }));
+
+  // Find player with most birdies
+  const birdieChamp = playersWithBirdies.reduce((best, current) => 
+    current.birdieCount > best.birdieCount ? current : best, 
+    playersWithBirdies[0]
+  );
+
   const handlePlayAgain = () => {
     setLocation("/host");
   };
@@ -254,9 +266,23 @@ Play with us: ${gameUrl}`;
           <div className="text-white font-bold">{players.length}</div>
         </div>
         <div className="bg-white/10 rounded-xl p-4">
-          <div className="text-2xl mb-1">🎯</div>
-          <div className="text-sm text-white/70">Best Score</div>
-          <div className="text-green-400 font-bold">{Math.min(...players.map(p => p.totalScore))}</div>
+          <div className="text-2xl mb-1">🐦</div>
+          <div className="text-sm text-white/70">Birdie King</div>
+          {birdieChamp.birdieCount > 0 ? (
+            <div className="text-green-400 font-bold text-xs">
+              {birdieChamp.name}
+              <div className="text-white/70 text-xs mt-1">
+                {birdieChamp.birdieCount} {birdieChamp.birdieCount === 1 ? 'birdie' : 'birdies'}
+              </div>
+            </div>
+          ) : (
+            <div className="text-white/70 text-xs">
+              No birdies
+              <div className="text-white/50 text-xs mt-1">
+                Try harder!
+              </div>
+            </div>
+          )}
         </div>
         <div className="bg-white/10 rounded-xl p-4">
           <div className="text-2xl mb-1">🏌️‍♂️</div>
