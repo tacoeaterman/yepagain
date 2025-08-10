@@ -4,7 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGame } from "@/hooks/useGame";
 import { Link } from "wouter";
-import { Plus, Users, ShoppingBag, BarChart3 } from "lucide-react";
+import { Plus, Users, ShoppingBag } from "lucide-react";
 
 export default function MainMenu() {
   const { user, logout } = useAuth();
@@ -65,7 +65,7 @@ export default function MainMenu() {
         </Card>
 
         {/* Quick Actions Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           
           <Link href="/host">
             <GameCard
@@ -92,12 +92,6 @@ export default function MainMenu() {
               icon={<ShoppingBag className="w-8 h-8 text-purple-400" />}
             />
           </Link>
-
-          <GameCard
-            title="Statistics"
-            description="View your game history and performance"
-            icon={<BarChart3 className="w-8 h-8 text-green-400" />}
-          />
         </div>
 
         {/* Recent Games */}
