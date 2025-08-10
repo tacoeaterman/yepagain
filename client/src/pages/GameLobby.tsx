@@ -191,7 +191,7 @@ export default function GameLobby() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h1 className="text-2xl font-bold text-white">
-                {currentGame.courseName || 'Disc Golf Game'}
+                {currentGame.gameName || 'Disc Golf Game'}
               </h1>
               <p className="text-white/70">
                 {currentGame.totalHoles} holes • Standard Stroke Play

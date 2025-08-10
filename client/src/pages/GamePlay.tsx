@@ -207,7 +207,7 @@ export default function GamePlay() {
               <h1 className="text-2xl font-bold text-white">
                 Hole {currentGame.currentHole} of {currentGame.totalHoles}
               </h1>
-              <p className="text-white/70">{currentGame.courseName || 'Disc Golf Course'}</p>
+              <p className="text-white/70">{currentGame.gameName || 'Disc Golf Game'}</p>
               {isHost && (
                 <div className="mt-3 flex items-center space-x-2">
                   <Input

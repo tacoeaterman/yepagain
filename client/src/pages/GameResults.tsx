@@ -119,7 +119,7 @@ export default function GameResults() {
 📊 Final Leaderboard:
 ${leaderboardText}
 
-${currentGame.totalHoles} holes played on ${currentGame.courseName || 'Disc Golf Course'}
+${currentGame.totalHoles} holes played in ${currentGame.gameName || 'our game'}
 
 Play with us: ${gameUrl}`;
 
@@ -167,7 +167,7 @@ Play with us: ${gameUrl}`;
       <Card className="glass-card rounded-3xl p-4 text-center mb-8 border-2 border-yellow-400/50 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
         <CardContent className="p-0">
           <div className="text-white/90 text-lg">
-            🏌️‍♂️ {currentGame.totalHoles} holes completed at <span className="font-bold text-yellow-300">{currentGame.courseName || 'Disc Golf Course'}</span>
+            🏌️‍♂️ {currentGame.totalHoles} holes completed in <span className="font-bold text-yellow-300">{currentGame.gameName || 'this game'}</span>
           </div>
         </CardContent>
       </Card>

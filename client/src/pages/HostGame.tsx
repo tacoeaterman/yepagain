@@ -8,12 +8,12 @@ import { useLocation } from "wouter";
 
 export default function HostGame() {
   const [holeCount, setHoleCount] = useState(18);
-  const [courseName, setCourseName] = useState("");
+  const [gameName, setGameName] = useState("");
   const { createGame } = useGame();
   const [, setLocation] = useLocation();
 
   const handleCreateGame = async () => {
-    const gameCode = await createGame(holeCount, courseName || undefined);
+    const gameCode = await createGame(holeCount, gameName || undefined);
     if (gameCode) {
       setLocation(`/lobby/${gameCode}`);
     }
@@ -74,14 +74,14 @@ export default function HostGame() {
 
             <div>
               <Label className="block text-white/80 text-sm font-medium mb-3">
-                Course Information (Optional)
+                Game Name (Optional)
               </Label>
               <Input
                 type="text"
-                value={courseName}
-                onChange={(e) => setCourseName(e.target.value)}
+                value={gameName}
+                onChange={(e) => setGameName(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/60 focus:border-white/40"
-                placeholder="Enter course name"
+                placeholder="Enter game name"
               />
             </div>
           </div>

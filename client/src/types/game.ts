@@ -23,7 +23,7 @@ export interface GameState {
   id: string;
   gameCode: string;
   hostId: string;
-  courseName?: string;
+  gameName?: string;
   totalHoles: number;
   currentHole: number;
   currentPar: number;
