@@ -460,6 +460,7 @@ export function useGame() {
     const nextHole = currentGame.currentHole + 1;
     // If we've completed the last hole, finish the game
     if (nextHole > currentGame.totalHoles) {
+      console.log('🏁 Game finishing! nextHole:', nextHole, 'totalHoles:', currentGame.totalHoles);
       await update(ref(database, `games/${gameId}`), {
         gamePhase: 'finished',
         gameActivity: [
@@ -467,6 +468,7 @@ export function useGame() {
           'Game finished!'
         ],
       });
+      console.log('🏁 Game phase set to finished in Firebase');
       toast({ title: 'Round complete!', description: 'Game has been finished.' });
       return;
     }

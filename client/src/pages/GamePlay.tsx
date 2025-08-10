@@ -46,6 +46,7 @@ export default function GamePlay() {
   // Redirect to results when game finishes
   useEffect(() => {
     if (currentGame?.gamePhase === 'finished') {
+      console.log('🏁 Game phase is finished, redirecting to results:', `/results/${currentGame.gameCode}`);
       setLocation(`/results/${currentGame.gameCode}`);
     }
   }, [currentGame?.gamePhase, currentGame?.gameCode, setLocation]);

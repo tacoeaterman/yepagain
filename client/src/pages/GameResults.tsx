@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { PlayerCard } from "@/components/PlayerCard";
@@ -7,14 +8,78 @@ import { useLocation, useRoute } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 
 export default function GameResults() {
-  const [match] = useRoute("/results/:gameCode");
-  const { currentGame } = useGame();
+  const [match, params] = useRoute("/results/:gameCode");
+  const { currentGame, listenToGame, findGameByCode } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    console.log('🏁 GameResults useEffect - match:', match, 'gameCode:', params?.gameCode, 'currentGame:', !!currentGame);
+    if (match && params?.gameCode && !currentGame) {
+      setLoading(true);
+      console.log('🏁 GameResults finding game by code:', params.gameCode);
+      findGameByCode(params.gameCode)
+        .then(() => {
+          console.log('🏁 GameResults game found successfully');
+          setLoading(false);
+        })
+        .catch((error) => {
+          console.error('🏁 GameResults error finding game:', error);
+          setLoading(false);
+          toast({
+            title: "Game not found",
+            description: "The game you're looking for doesn't exist or has been deleted.",
+            variant: "destructive",
+          });
+          setLocation("/");
+        });
+    } else if (currentGame) {
+      console.log('🏁 GameResults currentGame already exists, gamePhase:', currentGame.gamePhase);
+      setLoading(false);
+    }
+  }, [match, params?.gameCode, currentGame, findGameByCode, setLocation, toast]);
+
+  useEffect(() => {
+    if (currentGame?.id) {
+      const unsubscribe = listenToGame(currentGame.id);
+      return unsubscribe;
+    }
+  }, [currentGame?.id, listenToGame]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4">⏳</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Loading Results...</h1>
+            <p className="text-white/70">Please wait while we load the game results</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!currentGame || !user) {
-    return <div>Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <Card className="glass-card rounded-3xl p-8 text-center border-0">
+          <CardContent className="p-0">
+            <div className="text-6xl mb-4">❌</div>
+            <h1 className="text-2xl font-bold text-white mb-2">Game not found</h1>
+            <p className="text-white/70 mb-6">The game you're looking for doesn't exist or has been deleted.</p>
+            <Button
+              onClick={() => setLocation("/")}
+              className="bg-brand-accent text-white font-semibold py-3 px-6 rounded-xl hover:bg-brand-accent/90 transition-colors"
+            >
+              Back to Main Menu
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   const players = Object.values(currentGame.players);
