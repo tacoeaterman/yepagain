@@ -551,7 +551,6 @@ export function useGame() {
     gameName: string,
     scheduledDate: Date,
     scheduledTime: string,
-    invitedPlayers: { emails?: string[]; phones?: string[] },
     notes?: string
   ) => {
     if (!user || !hasHostingPrivilege) {
@@ -571,7 +570,6 @@ export function useGame() {
         gameName,
         scheduledDate: scheduledDate.toISOString(),
         scheduledTime,
-        invitedPlayers,
         notes,
         status: 'scheduled',
         createdAt: new Date().toISOString(),
@@ -579,11 +577,9 @@ export function useGame() {
 
       await set(scheduledGameRef, scheduledGame);
 
-      // TODO: Implement email/SMS notifications
-      // For now, just show success message
       toast({
         title: "Game Scheduled",
-        description: "Players will be notified",
+        description: "Share the game link with your friends!",
       });
 
       return scheduledGame.id;
@@ -608,12 +604,8 @@ export function useGame() {
 
       const games = Object.values(snapshot.val() as Record<string, ScheduledGame>);
       
-      // Filter games where user is host or invited
-      return games.filter(game => 
-        game.hostId === user.uid || 
-        game.invitedPlayers.emails?.includes(user.email!) ||
-        game.invitedPlayers.phones?.some(phone => phone === user.phoneNumber)
-      );
+      // Filter games where user is host
+      return games.filter(game => game.hostId === user.uid);
     } catch (error) {
       console.error('Error fetching scheduled games:', error);
       return [];

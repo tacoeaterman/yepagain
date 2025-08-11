@@ -25,10 +25,6 @@ export interface ScheduledGame {
   gameName: string;
   scheduledDate: string; // ISO date string
   scheduledTime: string;
-  invitedPlayers: {
-    emails?: string[];
-    phones?: string[];
-  };
   notes?: string;
   status: 'scheduled' | 'cancelled' | 'completed';
   createdAt: string;

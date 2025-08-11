@@ -27,7 +27,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function ScheduleGame() {
   const { user } = useAuth();
-  const { hasHostingPrivilege } = useGame();
+  const { hasHostingPrivilege, scheduleGame } = useGame();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
