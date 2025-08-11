@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { GameCard } from "@/components/GameCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGame } from "@/hooks/useGame";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Plus, Users, ShoppingBag, Calendar, Bot, Bug, Clock } from "lucide-react";
 
 export default function MainMenu() {
   const { user, logout } = useAuth();
   const { hasHostingPrivilege } = useGame();
+  const [, setLocation] = useLocation();
 
   return (
     <>
