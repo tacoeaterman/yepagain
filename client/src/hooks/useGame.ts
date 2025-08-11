@@ -338,6 +338,16 @@ export function useGame() {
     if (!user || !currentGame) return;
 
     try {
+      // Validate score range
+      if (!Number.isInteger(score) || score < 1 || score > 30) {
+        toast({
+          title: "Invalid score",
+          description: "Score must be a whole number between 1 and 30 strokes",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Check if par has been set for this hole
       const parIsSet = currentGame.parsSet?.[holeIndex] ?? false;
       if (!parIsSet) {

@@ -7,6 +7,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { useGame } from "@/hooks/useGame";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import { Card as CardType } from "@/types/game";
 import { Play, Eye, EyeOff } from "lucide-react";
 
@@ -15,6 +16,7 @@ export default function GamePlay() {
   const { currentGame, listenToGame, findGameByCode, playCard, submitScore, setParForHole, advanceToNextHole } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [showHand, setShowHand] = useState(true);
   const [parInput, setParInput] = useState<number | "">("");
@@ -69,8 +71,21 @@ export default function GamePlay() {
 
   const handleSubmitScore = async () => {
     if (!currentGame?.id || !user || myHoleScore === "") return;
+    
+    const score = Number(myHoleScore);
+    
+    // Validate score range
+    if (score < 1 || score > 30) {
+      toast({
+        title: "Invalid score",
+        description: "Please enter a score between 1 and 30 strokes",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const holeIndex = currentGame.currentHole - 1;
-    await submitScore(currentGame.id, holeIndex, Number(myHoleScore));
+    await submitScore(currentGame.id, holeIndex, score);
   };
 
   const handleUpdatePar = async () => {
@@ -259,10 +274,22 @@ export default function GamePlay() {
                   <Input
                     type="number"
                     min={1}
+                    max={30}
                     value={myHoleScore}
-                    onChange={(e) => setMyHoleScore(e.target.value === '' ? '' : Number(e.target.value))}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setMyHoleScore('');
+                      } else {
+                        const numValue = Number(value);
+                        // Only allow values between 1 and 30
+                        if (numValue >= 1 && numValue <= 30) {
+                          setMyHoleScore(numValue);
+                        }
+                      }
+                    }}
                     className="bg-white/10 border-white/20 text-white"
-                    placeholder={parIsSet ? "Enter strokes" : "Waiting for host to set par..."}
+                    placeholder={parIsSet ? "Enter strokes (1-30)" : "Waiting for host to set par..."}
                     disabled={!parIsSet}
                   />
                   {!parIsSet ? (
@@ -272,12 +299,19 @@ export default function GamePlay() {
                   ) : myHoleScore !== "" && typeof myHoleScore === 'number' ? (
                     <div className="text-white/60 text-xs mt-1">
                       Golf score: {myHoleScore - (currentGame.currentPar || 3) > 0 ? '+' : ''}{myHoleScore - (currentGame.currentPar || 3)}
+                      {(myHoleScore < 1 || myHoleScore > 30) && (
+                        <span className="text-red-400 ml-2">⚠️ Score must be 1-30</span>
+                      )}
+                    </div>
+                  ) : parIsSet ? (
+                    <div className="text-white/40 text-xs mt-1">
+                      Valid range: 1-30 strokes
                     </div>
                   ) : null}
                 </div>
                 <Button 
                   onClick={handleSubmitScore} 
-                  disabled={!parIsSet || myHoleScore === ""} 
+                  disabled={!parIsSet || myHoleScore === "" || typeof myHoleScore !== 'number' || myHoleScore < 1 || myHoleScore > 30} 
                   className="bg-brand-accent text-white h-10 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Submit Score
