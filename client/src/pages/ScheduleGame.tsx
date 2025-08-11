@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Calendar as CalendarIcon, Mail, Share2, MessageSquare, Copy, Check } from "lucide-react";
 import {
   Popover,
   PopoverContent,
@@ -35,10 +35,9 @@ export default function ScheduleGame() {
   const [gameName, setGameName] = useState("");
   const [date, setDate] = useState<Date>();
   const [time, setTime] = useState("");
-  const [playerEmails, setPlayerEmails] = useState("");
-  const [playerPhones, setPlayerPhones] = useState("");
   const [notes, setNotes] = useState("");
-  const [notificationType, setNotificationType] = useState("email"); // "email" or "sms"
+  const [gameId, setGameId] = useState<string>("");
+  const [copied, setCopied] = useState(false);
 
   // Time options for the select
   const timeOptions = Array.from({ length: 24 * 4 }, (_, i) => {
@@ -69,18 +68,14 @@ export default function ScheduleGame() {
     }
 
     try {
-      // TODO: Implement game scheduling logic
-      const emails = playerEmails.split(",").map(email => email.trim()).filter(Boolean);
-      const phones = playerPhones.split(",").map(phone => phone.trim()).filter(Boolean);
+      // Create the game and get the ID
+      const id = await scheduleGame(gameName, date, time, notes);
+      setGameId(id || "");
 
-      // For now, just show success message
       toast({
         title: "Game Scheduled!",
-        description: "Invitations will be sent to players",
+        description: "You can now share the game with players",
       });
-
-      // Return to main menu
-      setLocation("/");
     } catch (error) {
       toast({
         title: "Error",
@@ -173,46 +168,88 @@ export default function ScheduleGame() {
               </Select>
             </div>
 
-            {/* Notification Type */}
-            <div>
-              <Label className="text-white/80">Notification Type</Label>
-              <Select value={notificationType} onValueChange={setNotificationType}>
-                <SelectTrigger className="w-full mt-2 bg-white/10 border-white/20 text-white">
-                  <SelectValue placeholder="Select notification type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="email">Email</SelectItem>
-                  <SelectItem value="sms">SMS</SelectItem>
-                  <SelectItem value="both">Both</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Share Buttons (shown after game is created) */}
+            {gameId && (
+              <div className="space-y-4">
+                <Label className="text-white/80">Share Game</Label>
+                <div className="grid grid-cols-1 gap-3">
+                  <Button
+                    type="button"
+                    className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    onClick={async () => {
+                      const gameUrl = `${window.location.origin}/join/${gameId}`;
+                      const subject = encodeURIComponent(`Join my Disc Golf game: ${gameName}`);
+                      const body = encodeURIComponent(`Join my scheduled Disc Golf game!\n\nGame: ${gameName}\nDate: ${format(date!, "PPP")}\nTime: ${time}\n\nJoin here: ${gameUrl}`);
+                      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+                    }}
+                  >
+                    <Mail className="w-5 h-5" />
+                    <span>Share via Email</span>
+                  </Button>
 
-            {/* Player Emails */}
-            {(notificationType === "email" || notificationType === "both") && (
-              <div>
-                <Label className="text-white/80">Player Emails</Label>
-                <Textarea
-                  value={playerEmails}
-                  onChange={(e) => setPlayerEmails(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white mt-2"
-                  placeholder="Enter player emails (comma-separated)"
-                />
-                <p className="text-white/50 text-sm mt-1">Example: player1@email.com, player2@email.com</p>
-              </div>
-            )}
+                  <Button
+                    type="button"
+                    className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    onClick={async () => {
+                      const gameUrl = `${window.location.origin}/join/${gameId}`;
+                      const text = encodeURIComponent(`Join my Disc Golf game!\n\nGame: ${gameName}\nDate: ${format(date!, "PPP")}\nTime: ${time}\n\nJoin here: ${gameUrl}`);
+                      window.location.href = `sms:?body=${text}`;
+                    }}
+                  >
+                    <MessageSquare className="w-5 h-5" />
+                    <span>Share via SMS</span>
+                  </Button>
 
-            {/* Player Phone Numbers */}
-            {(notificationType === "sms" || notificationType === "both") && (
-              <div>
-                <Label className="text-white/80">Player Phone Numbers</Label>
-                <Textarea
-                  value={playerPhones}
-                  onChange={(e) => setPlayerPhones(e.target.value)}
-                  className="bg-white/10 border-white/20 text-white mt-2"
-                  placeholder="Enter phone numbers (comma-separated)"
-                />
-                <p className="text-white/50 text-sm mt-1">Example: +1234567890, +0987654321</p>
+                  <Button
+                    type="button"
+                    className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    onClick={async () => {
+                      const gameUrl = `${window.location.origin}/join/${gameId}`;
+                      if (navigator.share) {
+                        try {
+                          await navigator.share({
+                            title: `Join my Disc Golf game: ${gameName}`,
+                            text: `Join my scheduled Disc Golf game!\n\nGame: ${gameName}\nDate: ${format(date!, "PPP")}\nTime: ${time}`,
+                            url: gameUrl
+                          });
+                        } catch (err) {
+                          // User cancelled or share failed
+                        }
+                      } else {
+                        // Fallback to copying the link
+                        await navigator.clipboard.writeText(gameUrl);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }
+                    }}
+                  >
+                    <Share2 className="w-5 h-5" />
+                    <span>Share...</span>
+                  </Button>
+
+                  <Button
+                    type="button"
+                    className="w-full bg-gray-500 hover:bg-gray-600 text-white font-semibold py-4 rounded-xl transition-colors flex items-center justify-center space-x-2"
+                    onClick={async () => {
+                      const gameUrl = `${window.location.origin}/join/${gameId}`;
+                      await navigator.clipboard.writeText(gameUrl);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="w-5 h-5" />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-5 h-5" />
+                        <span>Copy Link</span>
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             )}
 
@@ -227,21 +264,33 @@ export default function ScheduleGame() {
               />
             </div>
 
-            {/* Submit Button */}
+            {/* Action Buttons */}
             <div className="flex space-x-4">
-              <Button
-                type="submit"
-                className="flex-1 bg-brand-accent text-white font-semibold py-4 rounded-xl hover:bg-brand-accent/90 transition-colors"
-              >
-                Schedule Game
-              </Button>
-              <Button
-                type="button"
-                onClick={() => setLocation("/")}
-                className="bg-white/10 text-white font-semibold py-4 rounded-xl hover:bg-white/20 transition-colors"
-              >
-                Cancel
-              </Button>
+              {!gameId ? (
+                <>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-brand-accent text-white font-semibold py-4 rounded-xl hover:bg-brand-accent/90 transition-colors"
+                  >
+                    Schedule Game
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => setLocation("/")}
+                    className="bg-white/10 text-white font-semibold py-4 rounded-xl hover:bg-white/20 transition-colors"
+                  >
+                    Cancel
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => setLocation("/")}
+                  className="w-full bg-brand-accent text-white font-semibold py-4 rounded-xl hover:bg-brand-accent/90 transition-colors"
+                >
+                  Return to Main Menu
+                </Button>
+              )}
             </div>
           </form>
         </CardContent>
