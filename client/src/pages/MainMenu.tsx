@@ -105,7 +105,7 @@ export default function MainMenu() {
                 <Button
                   disabled={!hasHostingPrivilege}
                   className="w-full h-full p-6 bg-transparent hover:bg-white/5 border-2 border-white/10 rounded-xl relative overflow-hidden group transition-all"
-                  onClick={() => {/* TODO: Implement schedule game */}}
+                  onClick={() => setLocation("/schedule")}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="bg-purple-500/20 p-3 rounded-lg">

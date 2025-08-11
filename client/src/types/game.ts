@@ -19,6 +19,21 @@ export interface Card {
   effect: string; // What the card does
 }
 
+export interface ScheduledGame {
+  id: string;
+  hostId: string;
+  gameName: string;
+  scheduledDate: string; // ISO date string
+  scheduledTime: string;
+  invitedPlayers: {
+    emails?: string[];
+    phones?: string[];
+  };
+  notes?: string;
+  status: 'scheduled' | 'cancelled' | 'completed';
+  createdAt: string;
+}
+
 export interface GameState {
   id: string;
   gameCode: string;
@@ -36,6 +51,7 @@ export interface GameState {
   discardPile: Card[]; // Cards that have been played
   currentPlayerTurn?: string; // Whose turn it is
   gameRound: 'before_throw' | 'after_throw' | 'scoring'; // Current game phase
+  scheduledGameId?: string; // Reference to scheduled game if this is a scheduled game
 }
 
 // Card definitions

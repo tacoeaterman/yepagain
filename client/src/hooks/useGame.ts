@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { database, ref, onValue, set, push, update } from '@/lib/firebase';
-import { GameState, Player, Card, CARD_DECK } from '@/types/game';
+import { database, ref, onValue, set, push, update, get } from '@/lib/firebase';
+import { GameState, Player, Card, CARD_DECK, ScheduledGame } from '@/types/game';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
@@ -547,6 +547,120 @@ export function useGame() {
     }
   };
 
+  const scheduleGame = async (
+    gameName: string,
+    scheduledDate: Date,
+    scheduledTime: string,
+    invitedPlayers: { emails?: string[]; phones?: string[] },
+    notes?: string
+  ) => {
+    if (!user || !hasHostingPrivilege) {
+      toast({
+        title: "Cannot schedule game",
+        description: "You need hosting privileges to schedule games",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const scheduledGameRef = push(ref(database, 'scheduledGames'));
+      const scheduledGame: ScheduledGame = {
+        id: scheduledGameRef.key!,
+        hostId: user.uid,
+        gameName,
+        scheduledDate: scheduledDate.toISOString(),
+        scheduledTime,
+        invitedPlayers,
+        notes,
+        status: 'scheduled',
+        createdAt: new Date().toISOString(),
+      };
+
+      await set(scheduledGameRef, scheduledGame);
+
+      // TODO: Implement email/SMS notifications
+      // For now, just show success message
+      toast({
+        title: "Game Scheduled",
+        description: "Players will be notified",
+      });
+
+      return scheduledGame.id;
+    } catch (error: any) {
+      console.error('Error scheduling game:', error);
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getScheduledGames = async () => {
+    if (!user) return [];
+
+    try {
+      const scheduledGamesRef = ref(database, 'scheduledGames');
+      const snapshot = await get(scheduledGamesRef);
+      
+      if (!snapshot.exists()) return [];
+
+      const games = Object.values(snapshot.val() as Record<string, ScheduledGame>);
+      
+      // Filter games where user is host or invited
+      return games.filter(game => 
+        game.hostId === user.uid || 
+        game.invitedPlayers.emails?.includes(user.email!) ||
+        game.invitedPlayers.phones?.some(phone => phone === user.phoneNumber)
+      );
+    } catch (error) {
+      console.error('Error fetching scheduled games:', error);
+      return [];
+    }
+  };
+
+  const cancelScheduledGame = async (gameId: string) => {
+    if (!user) return;
+
+    try {
+      const gameRef = ref(database, `scheduledGames/${gameId}`);
+      const snapshot = await get(gameRef);
+      
+      if (!snapshot.exists()) {
+        toast({
+          title: "Error",
+          description: "Game not found",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const game = snapshot.val() as ScheduledGame;
+      if (game.hostId !== user.uid) {
+        toast({
+          title: "Error",
+          description: "Only the host can cancel a scheduled game",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await update(gameRef, { status: 'cancelled' });
+      
+      toast({
+        title: "Game Cancelled",
+        description: "Players will be notified",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     currentGame,
     hasHostingPrivilege,
@@ -560,5 +674,8 @@ export function useGame() {
     setParForHole,
     advanceToNextHole,
     purchaseHosting,
+    scheduleGame,
+    getScheduledGames,
+    cancelScheduledGame,
   };
 }

@@ -13,6 +13,7 @@ import JoinGame from "@/pages/JoinGame";
 import GameLobby from "@/pages/GameLobby";
 import GamePlay from "@/pages/GamePlay";
 import GameResults from "@/pages/GameResults";
+import ScheduleGame from "@/pages/ScheduleGame";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -48,6 +49,7 @@ function Router() {
       <Route path="/lobby/:gameCode" component={GameLobby} />
       <Route path="/game/:gameCode" component={GamePlay} />
       <Route path="/results/:gameCode" component={GameResults} />
+      <Route path="/schedule" component={ScheduleGame} />
       <Route component={NotFound} />
     </Switch>
   );
