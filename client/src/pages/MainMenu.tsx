@@ -4,7 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGame } from "@/hooks/useGame";
 import { Link } from "wouter";
-import { Plus, Users, ShoppingBag } from "lucide-react";
+import { Plus, Users, ShoppingBag, Calendar, Bot, Bug, Clock } from "lucide-react";
 
 export default function MainMenu() {
   const { user, logout } = useAuth();
@@ -94,13 +94,71 @@ export default function MainMenu() {
           </Link>
         </div>
 
-        {/* Recent Games */}
+        {/* Additional Game Modes & Support */}
         <Card className="glass-card rounded-3xl p-6 border-0">
           <CardContent className="p-0">
-            <h3 className="text-xl font-bold text-white mb-4">Recent Games</h3>
-            <div className="text-center py-8">
-              <p className="text-white/70">No recent games found</p>
-              <p className="text-white/50 text-sm mt-2">Join or host a game to get started!</p>
+            <h3 className="text-xl font-bold text-white mb-4">More Ways to Play</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Schedule Game - Host Only */}
+              <div className={`relative ${!hasHostingPrivilege ? 'opacity-50' : ''}`}>
+                <div className={`absolute inset-0 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl transition-all ${!hasHostingPrivilege ? 'blur-sm' : ''}`}></div>
+                <Button
+                  disabled={!hasHostingPrivilege}
+                  className="w-full h-full p-6 bg-transparent hover:bg-white/5 border-2 border-white/10 rounded-xl relative overflow-hidden group transition-all"
+                  onClick={() => {/* TODO: Implement schedule game */}}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-purple-500/20 p-3 rounded-lg">
+                      <Calendar className="w-6 h-6 text-purple-300" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-lg font-semibold text-white mb-1">Schedule Game</h4>
+                      <p className="text-sm text-white/70">Plan a future game with friends</p>
+                      <div className="flex items-center mt-2">
+                        <Clock className="w-4 h-4 text-white/40 mr-1" />
+                        <span className="text-xs text-white/40">Coming Soon</span>
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+
+              {/* Solo Game - Host Only */}
+              <div className={`relative ${!hasHostingPrivilege ? 'opacity-50' : ''}`}>
+                <div className={`absolute inset-0 bg-gradient-to-r from-green-500/20 to-teal-500/20 rounded-xl transition-all ${!hasHostingPrivilege ? 'blur-sm' : ''}`}></div>
+                <Button
+                  disabled={!hasHostingPrivilege}
+                  className="w-full h-full p-6 bg-transparent hover:bg-white/5 border-2 border-white/10 rounded-xl relative overflow-hidden group transition-all"
+                  onClick={() => {/* TODO: Implement solo game */}}
+                >
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-green-500/20 p-3 rounded-lg">
+                      <Bot className="w-6 h-6 text-green-300" />
+                    </div>
+                    <div className="text-left">
+                      <h4 className="text-lg font-semibold text-white mb-1">Solo Game</h4>
+                      <p className="text-sm text-white/70">Play against 1-4 AI bots</p>
+                      <div className="flex items-center mt-2">
+                        <Clock className="w-4 h-4 text-white/40 mr-1" />
+                        <span className="text-xs text-white/40">Coming Soon</span>
+                      </div>
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+
+            {/* Support & Bug Report */}
+            <div className="mt-6">
+              <Button
+                className="w-full p-4 bg-white/5 hover:bg-white/10 border-2 border-white/10 rounded-xl transition-all"
+                onClick={() => {/* TODO: Implement bug report */}}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <Bug className="w-5 h-5 text-red-300" />
+                  <span className="text-white">Report a Bug</span>
+                </div>
+              </Button>
             </div>
           </CardContent>
         </Card>
