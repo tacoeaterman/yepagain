@@ -8,6 +8,15 @@ export interface Player {
   totalScore: number; // Total golf score (sum of hole scores)
   hand: Card[]; // Player's dealt cards
   position?: number; // Current position in game
+  pendingAcknowledgments?: PendingCardAcknowledgment[]; // Cards waiting for acknowledgment
+}
+
+export interface PendingCardAcknowledgment {
+  id: string;
+  card: Card;
+  playedBy: string;
+  playedByName: string;
+  timestamp: number;
 }
 
 export interface Card {

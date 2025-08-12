@@ -275,7 +275,7 @@ export function useGame() {
     }
   };
 
-  const playCard = async (gameId: string, cardId: string, targetPlayerId?: string) => {
+  const playCard = async (gameId: string, cardId: string, targetPlayerIds?: string[]) => {
     if (!user || !currentGame) return;
 
     try {
@@ -309,15 +309,47 @@ export function useGame() {
       // Add to discard pile
       const updatedDiscardPile = [...(currentGame.discardPile || []), playedCard];
       
-      // Update game state
-      const updates = {
+      // Prepare updates object
+      const updates: Record<string, any> = {
         [`games/${gameId}/players/${user.uid}/hand`]: updatedHand,
         [`games/${gameId}/discardPile`]: updatedDiscardPile,
-        [`games/${gameId}/gameActivity`]: [
-          ...(currentGame.gameActivity || []),
-          `${user.displayName || user.email} played ${playedCard.name}` + (targetPlayerId ? ` on ${currentGame.players[targetPlayerId]?.name || 'a player'}` : '')
-        ]
       };
+
+      // Add pending acknowledgments for targeted players
+      if (targetPlayerIds && targetPlayerIds.length > 0) {
+        const acknowledgmentId = `${cardId}_${Date.now()}`;
+        const acknowledgment = {
+          id: acknowledgmentId,
+          card: playedCard,
+          playedBy: user.uid,
+          playedByName: user.displayName || user.email!,
+          timestamp: Date.now(),
+        };
+
+        targetPlayerIds.forEach(targetId => {
+          const targetPlayer = currentGame.players[targetId];
+          if (targetPlayer) {
+            const existingAcks = targetPlayer.pendingAcknowledgments || [];
+            updates[`games/${gameId}/players/${targetId}/pendingAcknowledgments`] = [...existingAcks, acknowledgment];
+          }
+        });
+      }
+
+      // Update activity log
+      let activityMessage = `${user.displayName || user.email} played ${playedCard.name}`;
+      if (targetPlayerIds && targetPlayerIds.length > 0) {
+        if (targetPlayerIds.length === 1) {
+          const targetName = currentGame.players[targetPlayerIds[0]]?.name;
+          activityMessage += ` on ${targetName}`;
+        } else {
+          activityMessage += ` on ${targetPlayerIds.length} players`;
+        }
+      }
+
+      updates[`games/${gameId}/gameActivity`] = [
+        ...(currentGame.gameActivity || []),
+        activityMessage
+      ];
 
       await update(ref(database), updates);
       
@@ -328,6 +360,35 @@ export function useGame() {
     } catch (error: any) {
       toast({
         title: "Error playing card",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const acknowledgeCard = async (gameId: string, acknowledgmentId: string) => {
+    if (!user || !currentGame) return;
+
+    try {
+      const currentPlayer = currentGame.players[user.uid];
+      if (!currentPlayer?.pendingAcknowledgments) return;
+
+      // Remove the acknowledged card from pending acknowledgments
+      const updatedAcknowledgments = currentPlayer.pendingAcknowledgments.filter(
+        ack => ack.id !== acknowledgmentId
+      );
+
+      await update(ref(database), {
+        [`games/${gameId}/players/${user.uid}/pendingAcknowledgments`]: updatedAcknowledgments
+      });
+
+      toast({
+        title: "Card acknowledged",
+        description: "You have acknowledged the card effect",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error acknowledging card",
         description: error.message,
         variant: "destructive",
       });
@@ -662,6 +723,7 @@ export function useGame() {
     findGameByCode,
     startGame,
     playCard,
+    acknowledgeCard,
     submitScore,
     setParForHole,
     advanceToNextHole,

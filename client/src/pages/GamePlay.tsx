@@ -2,18 +2,19 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { PlayerCard } from "@/components/PlayerCard";
+import { CardTargetModal } from "@/components/CardTargetModal";
+import { CardAcknowledgmentModal } from "@/components/CardAcknowledgmentModal";
 import { useGame } from "@/hooks/useGame";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
-import { Card as CardType } from "@/types/game";
-import { Play, Eye, EyeOff } from "lucide-react";
+import { Card as CardType, PendingCardAcknowledgment } from "@/types/game";
+import { Play, Eye, EyeOff, AlertCircle } from "lucide-react";
 
 export default function GamePlay() {
   const [match, params] = useRoute("/game/:gameCode");
-  const { currentGame, listenToGame, findGameByCode, playCard, submitScore, setParForHole, advanceToNextHole } = useGame();
+  const { currentGame, listenToGame, findGameByCode, playCard, acknowledgeCard, submitScore, setParForHole, advanceToNextHole } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -21,7 +22,14 @@ export default function GamePlay() {
   const [showHand, setShowHand] = useState(true);
   const [parInput, setParInput] = useState<number | "">("");
   const [myHoleScore, setMyHoleScore] = useState<number | "">("");
-  const [targetByCard, setTargetByCard] = useState<Record<string, string>>({});
+  const [cardTargetModal, setCardTargetModal] = useState<{
+    isOpen: boolean;
+    card: CardType | null;
+  }>({ isOpen: false, card: null });
+  const [acknowledgmentModal, setAcknowledgmentModal] = useState<{
+    isOpen: boolean;
+    acknowledgment: PendingCardAcknowledgment | null;
+  }>({ isOpen: false, acknowledgment: null });
 
   useEffect(() => {
     if (match && params?.gameCode && !currentGame) {
@@ -53,6 +61,20 @@ export default function GamePlay() {
     }
   }, [currentGame?.gamePhase, currentGame?.gameCode, setLocation]);
 
+  // Show acknowledgment modal for pending cards
+  useEffect(() => {
+    if (!user || !currentGame) return;
+    
+    const currentPlayer = currentGame.players[user.uid];
+    const pendingAcknowledgments = currentPlayer?.pendingAcknowledgments || [];
+    
+    // Show the oldest unacknowledged card
+    if (pendingAcknowledgments.length > 0 && !acknowledgmentModal.isOpen) {
+      const oldestAcknowledgment = pendingAcknowledgments.sort((a, b) => a.timestamp - b.timestamp)[0];
+      setAcknowledgmentModal({ isOpen: true, acknowledgment: oldestAcknowledgment });
+    }
+  }, [currentGame?.players, user?.uid, acknowledgmentModal.isOpen]);
+
   // Sync local inputs when hole or game changes
   useEffect(() => {
     if (!currentGame || !user) return;
@@ -63,10 +85,20 @@ export default function GamePlay() {
     setMyHoleScore(typeof existing === 'number' ? existing : "");
   }, [currentGame?.currentHole, currentGame?.currentPar, currentGame?.id, user?.uid]);
 
-  const handlePlayCard = async (card: CardType) => {
+  const handleOpenCardModal = (card: CardType) => {
+    setCardTargetModal({ isOpen: true, card });
+  };
+
+  const handlePlayCard = async (card: CardType, targetPlayerIds?: string[]) => {
     if (!currentGame?.id) return;
-    const maybeTarget = targetByCard[card.id];
-    await playCard(currentGame.id, card.id, maybeTarget);
+    await playCard(currentGame.id, card.id, targetPlayerIds);
+    setCardTargetModal({ isOpen: false, card: null });
+  };
+
+  const handleAcknowledgeCard = async (acknowledgmentId: string) => {
+    if (!currentGame?.id) return;
+    await acknowledgeCard(currentGame.id, acknowledgmentId);
+    setAcknowledgmentModal({ isOpen: false, acknowledgment: null });
   };
 
   const handleSubmitScore = async () => {
@@ -353,26 +385,9 @@ export default function GamePlay() {
                         <p className="text-white/80 text-sm mb-4 leading-relaxed">
                           {card.description}
                         </p>
-                        {card.category !== 'Self' && (
-                          <div className="mb-3">
-                            <Select
-                              value={targetByCard[card.id] || ''}
-                              onValueChange={(val) => setTargetByCard(prev => ({ ...prev, [card.id]: val }))}
-                            >
-                              <SelectTrigger className="w-full bg-white/10 border-white/20 text-white">
-                                <SelectValue placeholder="Target player (optional)" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {Object.values(currentGame.players).filter(p => p.id !== user.uid).map(p => (
-                                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        )}
                         <Button
-                          onClick={() => handlePlayCard(card)}
-                          className="w-full bg-brand-accent text-white font-semibold py-2 rounded-xl hover:bg-brand-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          onClick={() => handleOpenCardModal(card)}
+                          className="w-full bg-brand-accent text-white font-semibold py-2 rounded-xl hover:bg-brand-accent/90 transition-colors"
                         >
                           <Play className="w-4 h-4 mr-2" />
                           Play Card
@@ -461,6 +476,40 @@ export default function GamePlay() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Card Target Modal */}
+      <CardTargetModal
+        isOpen={cardTargetModal.isOpen}
+        onClose={() => setCardTargetModal({ isOpen: false, card: null })}
+        card={cardTargetModal.card}
+        players={currentGame?.players || {}}
+        currentUserId={user?.uid || ""}
+        onPlayCard={handlePlayCard}
+      />
+
+      {/* Card Acknowledgment Modal */}
+      <CardAcknowledgmentModal
+        isOpen={acknowledgmentModal.isOpen}
+        onAcknowledge={() => {
+          if (acknowledgmentModal.acknowledgment) {
+            handleAcknowledgeCard(acknowledgmentModal.acknowledgment.id);
+          }
+        }}
+        card={acknowledgmentModal.acknowledgment?.card || null}
+        playedBy={acknowledgmentModal.acknowledgment?.playedByName || ""}
+      />
+
+      {/* Pending Acknowledgments Indicator */}
+      {currentPlayer?.pendingAcknowledgments && currentPlayer.pendingAcknowledgments.length > 0 && (
+        <div className="fixed top-4 right-4 z-40">
+          <div className="bg-red-500 text-white px-3 py-2 rounded-lg shadow-lg flex items-center space-x-2">
+            <AlertCircle className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {currentPlayer.pendingAcknowledgments.length} card{currentPlayer.pendingAcknowledgments.length > 1 ? 's' : ''} pending
+            </span>
+          </div>
+        </div>
       )}
     </div>
   );
