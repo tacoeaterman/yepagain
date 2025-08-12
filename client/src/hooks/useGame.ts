@@ -198,11 +198,14 @@ export function useGame() {
 
   const listenToGame = (gameId: string) => {
     const gameRef = ref(database, `games/${gameId}`);
+    console.log('Setting up Firebase listener for game:', gameId);
     return onValue(gameRef, (snapshot) => {
       const gameData = snapshot.val();
+      console.log('Firebase listener received data:', gameData ? 'Data exists' : 'No data');
       if (gameData) {
+        console.log('Updating currentGame state with new data');
         // Preserve the id so subscribers don't lose the identifier
-        setCurrentGame((prev) => ({ ...gameData, id: gameId }));
+        setCurrentGame({ ...gameData, id: gameId });
       }
     });
   };
@@ -351,7 +354,9 @@ export function useGame() {
         activityMessage
       ];
 
+      console.log('Updating Firebase with card play:', updates);
       await update(ref(database), updates);
+      console.log('Firebase update successful');
       
       toast({
         title: "Card played!",

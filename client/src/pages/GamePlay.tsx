@@ -68,9 +68,17 @@ export default function GamePlay() {
     const currentPlayer = currentGame.players[user.uid];
     const pendingAcknowledgments = currentPlayer?.pendingAcknowledgments || [];
     
+    console.log('Checking for pending acknowledgments:', {
+      userId: user.uid,
+      pendingCount: pendingAcknowledgments.length,
+      modalOpen: acknowledgmentModal.isOpen,
+      pendingAcks: pendingAcknowledgments
+    });
+    
     // Show the oldest unacknowledged card
     if (pendingAcknowledgments.length > 0 && !acknowledgmentModal.isOpen) {
       const oldestAcknowledgment = pendingAcknowledgments.sort((a, b) => a.timestamp - b.timestamp)[0];
+      console.log('Showing acknowledgment modal for card:', oldestAcknowledgment);
       setAcknowledgmentModal({ isOpen: true, acknowledgment: oldestAcknowledgment });
     }
   }, [currentGame?.players, user?.uid, acknowledgmentModal.isOpen]);
