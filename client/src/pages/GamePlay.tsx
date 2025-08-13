@@ -225,7 +225,9 @@ export default function GamePlay() {
     );
   }
   
-  if (!currentPlayer.hand || currentPlayer.hand.length === 0) {
+  // Only show "dealing cards" if the player's hand hasn't been initialized yet (null/undefined)
+  // Empty array means they played all their cards, which is valid gameplay
+  if (!currentPlayer.hand) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Card className="glass-card rounded-3xl p-8 text-center border-0">
