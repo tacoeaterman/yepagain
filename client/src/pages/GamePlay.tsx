@@ -225,6 +225,16 @@ export default function GamePlay() {
     );
   }
   
+  // DEBUG: Log the current state for troubleshooting
+  console.log('🎮 GamePlay Debug Info:', {
+    userUid: user.uid,
+    isHost: currentGame.hostId === user.uid,
+    gamePhase: currentGame.gamePhase,
+    playerExists: !!currentPlayer,
+    handState: currentPlayer?.hand,
+    version: 'v2.1-FIXED'
+  });
+
   // Never show dealing cards screen during active gameplay
   // The game should always continue regardless of hand state
   // This was the root cause - this condition should not exist during 'playing' phase
