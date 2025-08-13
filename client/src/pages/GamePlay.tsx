@@ -225,7 +225,7 @@ export default function GamePlay() {
     );
   }
   
-  // Debug logging removed for performance - was causing excessive console output
+  // Fix confirmed: No more dealing cards redirect for non-host players
 
   // Never show dealing cards screen during active gameplay
   // The game should always continue regardless of hand state
