@@ -71,27 +71,8 @@
   }
 
   body {
-    @apply antialiased bg-background;
+    @apply antialiased bg-background text-foreground;
     font-family: 'Fredoka', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-  }
-  
-  /* Apply white text with drop shadow to all text elements */
-  h1, h2, h3, h4, h5, h6, p, span, div, label, button, input, textarea, select {
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-  }
-  
-  /* Hard drop shadow for smaller text elements */
-  small, .text-xs, .text-sm, .text-base {
-    color: white;
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 1), 2px 2px 4px rgba(0, 0, 0, 0.8);
-  }
-  
-  /* Harder shadows for very small text */
-  .text-xs {
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 1), 1px 1px 2px rgba(0, 0, 0, 0.9);
   }
   
   .font-logo {
@@ -128,21 +109,6 @@
       2px -2px 0 hsl(220, 15%, 20%),
       -2px 2px 0 hsl(220, 15%, 20%),
       2px 2px 0 hsl(220, 15%, 20%);
-  }
-  
-  .text-white-shadow {
-    color: white;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-  }
-  
-  .text-hard-shadow {
-    color: white;
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 1), 2px 2px 4px rgba(0, 0, 0, 0.8);
-  }
-  
-  .text-ultra-hard-shadow {
-    color: white;
-    text-shadow: 1px 1px 0px rgba(0, 0, 0, 1), 1px 1px 2px rgba(0, 0, 0, 0.9);
   }
   
   /* Enhanced glass effects */
