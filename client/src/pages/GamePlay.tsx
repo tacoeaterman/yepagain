@@ -225,9 +225,12 @@ export default function GamePlay() {
     );
   }
   
-  // Only show "dealing cards" if the player's hand hasn't been initialized yet (null/undefined)
-  // Empty array means they played all their cards, which is valid gameplay
-  if (!currentPlayer.hand) {
+  // Debug what's happening with the hand
+  console.log('DEBUG: currentPlayer.hand:', currentPlayer.hand, 'type:', typeof currentPlayer.hand, 'isArray:', Array.isArray(currentPlayer.hand));
+  
+  // Only show "dealing cards" if the player's hand is not an array (null/undefined)
+  // If it's an array (even empty or [null]), the player is in active gameplay
+  if (!Array.isArray(currentPlayer.hand)) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         <Card className="glass-card rounded-3xl p-8 text-center border-0">
@@ -372,9 +375,9 @@ export default function GamePlay() {
               </Button>
             </div>
             
-            {showHand && currentPlayer.hand && currentPlayer.hand.length > 0 ? (
+            {showHand && currentPlayer.hand && currentPlayer.hand.filter(card => card !== null).length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentPlayer.hand.map((card) => (
+                {currentPlayer.hand.filter(card => card !== null).map((card) => (
                   <Card key={card.id} className={`${getCardColor(card.category)} border-2 transition-all duration-200 hover:scale-105`}>
                     <CardContent className="p-4">
                       <div className="text-center">

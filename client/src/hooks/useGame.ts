@@ -310,8 +310,9 @@ export function useGame() {
       const updatedDiscardPile = [...(currentGame.discardPile || []), playedCard];
       
       // Prepare updates object
+      // Ensure empty arrays stay as arrays (Firebase tends to convert empty arrays to null)
       const updates: Record<string, any> = {
-        [`games/${gameId}/players/${user.uid}/hand`]: updatedHand,
+        [`games/${gameId}/players/${user.uid}/hand`]: updatedHand.length === 0 ? [null] : updatedHand,
         [`games/${gameId}/discardPile`]: updatedDiscardPile,
       };
 
