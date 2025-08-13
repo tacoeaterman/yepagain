@@ -225,24 +225,9 @@ export default function GamePlay() {
     );
   }
   
-  // Debug what's happening with the hand
-  console.log('DEBUG: currentPlayer.hand:', currentPlayer.hand, 'type:', typeof currentPlayer.hand, 'isArray:', Array.isArray(currentPlayer.hand));
-  
-  // Only show "dealing cards" if the player's hand is not an array (null/undefined)
-  // If it's an array (even empty or [null]), the player is in active gameplay
-  if (!Array.isArray(currentPlayer.hand)) {
-    return (
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
-        <Card className="glass-card rounded-3xl p-8 text-center border-0">
-          <CardContent className="p-0">
-            <div className="text-6xl mb-4 animate-spin">🃏</div>
-            <h1 className="text-2xl font-bold text-white mb-2">Dealing cards...</h1>
-            <p className="text-white/70 mb-6">Please wait while cards are being dealt to all players.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Never show dealing cards screen during active gameplay
+  // The game should always continue regardless of hand state
+  // This was the root cause - this condition should not exist during 'playing' phase
   const players = Object.values(currentGame.players);
   const sortedPlayers = players.sort((a, b) => (a.totalScore || 0) - (b.totalScore || 0));
   const progress = (currentGame.currentHole / currentGame.totalHoles) * 100;
@@ -375,9 +360,9 @@ export default function GamePlay() {
               </Button>
             </div>
             
-            {showHand && currentPlayer.hand && currentPlayer.hand.filter(card => card !== null).length > 0 ? (
+            {showHand && currentPlayer.hand && Array.isArray(currentPlayer.hand) && currentPlayer.hand.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {currentPlayer.hand.filter(card => card !== null).map((card) => (
+                {currentPlayer.hand.map((card) => (
                   <Card key={card.id} className={`${getCardColor(card.category)} border-2 transition-all duration-200 hover:scale-105`}>
                     <CardContent className="p-4">
                       <div className="text-center">
