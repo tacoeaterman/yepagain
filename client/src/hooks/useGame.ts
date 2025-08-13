@@ -198,12 +198,9 @@ export function useGame() {
 
   const listenToGame = (gameId: string) => {
     const gameRef = ref(database, `games/${gameId}`);
-    console.log('Setting up Firebase listener for game:', gameId);
     return onValue(gameRef, (snapshot) => {
       const gameData = snapshot.val();
-      console.log('Firebase listener received data:', gameData ? 'Data exists' : 'No data');
       if (gameData) {
-        console.log('Updating currentGame state with new data');
         // Preserve the id so subscribers don't lose the identifier
         setCurrentGame({ ...gameData, id: gameId });
       }
@@ -354,9 +351,7 @@ export function useGame() {
         activityMessage
       ];
 
-      console.log('Updating Firebase with card play:', updates);
       await update(ref(database), updates);
-      console.log('Firebase update successful');
       
       toast({
         title: "Card played!",
@@ -570,21 +565,29 @@ export function useGame() {
       const playersArr = Object.values(currentGame.players);
       const lastPlace = playersArr.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))[0];
       if (lastPlace) {
-        // draw one card from deck
+        // draw one card from deck if available
         const deckCopy = [...(currentGame.deck || [])];
-        const drawn = deckCopy.pop();
-        if (drawn) {
-          const lastHand = [...(currentGame.players[lastPlace.id]?.hand || [])];
-          lastHand.push(drawn);
-          updates = {
-            ...updates,
-            [`games/${gameId}/deck`]: deckCopy,
-            [`games/${gameId}/players/${lastPlace.id}/hand`]: lastHand,
-            [`games/${gameId}/gameActivity`]: [
-              ...(updates[`games/${gameId}/gameActivity`] || []),
-              `${lastPlace.name} received a bonus card for being in last place`,
-            ],
-          };
+        if (deckCopy.length > 0) {
+          const drawn = deckCopy.pop();
+          if (drawn) {
+            const lastHand = [...(currentGame.players[lastPlace.id]?.hand || [])];
+            lastHand.push(drawn);
+            updates = {
+              ...updates,
+              [`games/${gameId}/deck`]: deckCopy,
+              [`games/${gameId}/players/${lastPlace.id}/hand`]: lastHand,
+              [`games/${gameId}/gameActivity`]: [
+                ...(updates[`games/${gameId}/gameActivity`] || []),
+                `${lastPlace.name} received a bonus card for being in last place`,
+              ],
+            };
+          }
+        } else {
+          // No cards left in deck - continue game progression without bonus card
+          updates[`games/${gameId}/gameActivity`] = [
+            ...(updates[`games/${gameId}/gameActivity`] || []),
+            `No bonus card available for ${lastPlace.name} (deck empty)`,
+          ];
         }
       }
     }
