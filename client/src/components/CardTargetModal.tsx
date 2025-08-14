@@ -11,6 +11,8 @@ interface CardTargetModalProps {
   card: CardType | null;
   players: Record<string, Player>;
   currentUserId: string;
+  currentHole?: number;
+  totalHoles?: number;
   onPlayCard: (card: CardType, targetPlayerIds?: string[]) => void;
 }
 
@@ -20,11 +22,18 @@ export function CardTargetModal({
   card,
   players,
   currentUserId,
+  currentHole = 1,
+  totalHoles = 18,
   onPlayCard,
 }: CardTargetModalProps) {
   const [selectedTargets, setSelectedTargets] = useState<string[]>([]);
 
   if (!card) return null;
+
+  // Check if Jealousy is being played on the last hole
+  const isJealousyCard = card.name.toLowerCase().includes('jealousy');
+  const isLastHole = currentHole === totalHoles;
+  const jealousyRestricted = isJealousyCard && isLastHole;
 
   // Determine targeting type based on card description and effect
   const getTargetingType = (card: CardType) => {
@@ -80,6 +89,9 @@ export function CardTargetModal({
   };
 
   const canPlay = () => {
+    // Check if Jealousy is restricted on last hole
+    if (jealousyRestricted) return false;
+    
     if (targetingType === 'self' || targetingType === 'all_opponents') return true;
     if (targetingType === 'single_opponent') return selectedTargets.length === 1;
     return false;
@@ -187,6 +199,15 @@ export function CardTargetModal({
               </div>
             )}
           </div>
+
+          {/* Jealousy Restriction Warning */}
+          {jealousyRestricted && (
+            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-xl">
+              <p className="text-red-200 text-sm font-medium text-center">
+                ⚠️ Jealousy cannot be played on the last hole!
+              </p>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex space-x-3">

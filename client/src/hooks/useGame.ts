@@ -302,6 +302,17 @@ export function useGame() {
 
       const playedCard = currentPlayer.hand[cardIndex];
       
+      // Check if Jealousy is being played on the last hole
+      const isJealousyCard = playedCard.name.toLowerCase().includes('jealousy');
+      if (isJealousyCard && currentGame.currentHole === currentGame.totalHoles) {
+        toast({
+          title: "Cannot play Jealousy",
+          description: "Jealousy cannot be played on the last hole",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       // Remove card from hand
       const updatedHand = [...currentPlayer.hand];
       updatedHand.splice(cardIndex, 1);
@@ -315,11 +326,34 @@ export function useGame() {
         [`games/${gameId}/discardPile`]: updatedDiscardPile,
       };
 
+      // Handle Jealousy card effect (score swapping)
+      if (isJealousyCard && targetPlayerIds && targetPlayerIds.length > 0) {
+        const targetPlayerId = targetPlayerIds[0]; // Jealousy targets one player
+        const targetPlayer = currentGame.players[targetPlayerId];
+        
+        if (targetPlayer) {
+          // Create copies of both players with swapped scores
+          const playersCopy = { ...currentGame.players };
+          swapScores(playersCopy[user.uid], playersCopy[targetPlayerId]);
+          
+          // Update all players in the database
+          Object.keys(playersCopy).forEach(playerId => {
+            updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
+          });
+          
+          updates[`games/${gameId}/gameActivity`] = [
+            ...(currentGame.gameActivity || []),
+            `${user.displayName || user.email} played Jealousy and swapped scores with ${targetPlayer.name}`
+          ];
+        }
+      }
+
       // Add pending acknowledgments for targeted players
       // Special case: "Ace run" cards should notify all OTHER players (not self)
       const isAceRunWild = playedCard.name.toLowerCase().includes('ace run');
       
-      if (targetPlayerIds && targetPlayerIds.length > 0) {
+      // Only create acknowledgments for non-Jealousy cards (Jealousy executes immediately)
+      if (targetPlayerIds && targetPlayerIds.length > 0 && !isJealousyCard) {
         const acknowledgmentId = `${cardId}_${Date.now()}`;
         const acknowledgment = {
           id: acknowledgmentId,
@@ -345,25 +379,27 @@ export function useGame() {
         });
       }
 
-      // Update activity log
-      let activityMessage = `${user.displayName || user.email} played ${playedCard.name}`;
-      
-      if (targetPlayerIds && targetPlayerIds.length > 0) {
-        if (isAceRunWild && targetPlayerIds.includes(user.uid)) {
-          // For Ace Run Wild, show that it was played on self but others were notified
-          activityMessage += ` on themselves`;
-        } else if (targetPlayerIds.length === 1) {
-          const targetName = currentGame.players[targetPlayerIds[0]]?.name;
-          activityMessage += ` on ${targetName}`;
-        } else {
-          activityMessage += ` on ${targetPlayerIds.length} players`;
+      // Update activity log (skip if Jealousy as it has its own activity message)
+      if (!isJealousyCard) {
+        let activityMessage = `${user.displayName || user.email} played ${playedCard.name}`;
+        
+        if (targetPlayerIds && targetPlayerIds.length > 0) {
+          if (isAceRunWild && targetPlayerIds.includes(user.uid)) {
+            // For Ace Run Wild, show that it was played on self but others were notified
+            activityMessage += ` on themselves`;
+          } else if (targetPlayerIds.length === 1) {
+            const targetName = currentGame.players[targetPlayerIds[0]]?.name;
+            activityMessage += ` on ${targetName}`;
+          } else {
+            activityMessage += ` on ${targetPlayerIds.length} players`;
+          }
         }
-      }
 
-      updates[`games/${gameId}/gameActivity`] = [
-        ...(currentGame.gameActivity || []),
-        activityMessage
-      ];
+        updates[`games/${gameId}/gameActivity`] = [
+          ...(currentGame.gameActivity || []),
+          activityMessage
+        ];
+      }
 
       await update(ref(database), updates);
       
@@ -736,6 +772,23 @@ export function useGame() {
     }
   };
 
+  const swapScores = (player1: Player, player2: Player) => {
+    // Swap total scores
+    const tempTotalScore = player1.totalScore;
+    player1.totalScore = player2.totalScore;
+    player2.totalScore = tempTotalScore;
+
+    // Swap individual hole scores
+    const tempScores = [...(player1.scores || [])];
+    player1.scores = [...(player2.scores || [])];
+    player2.scores = tempScores;
+
+    // Swap stroke counts
+    const tempStrokes = [...(player1.strokes || [])];
+    player1.strokes = [...(player2.strokes || [])];
+    player2.strokes = tempStrokes;
+  };
+
   const reactToCard = async (gameId: string, acknowledgmentId: string, reactionType: 'reflect' | 'redirect', targetPlayerId?: string) => {
     if (!user || !currentGame) return;
 
@@ -788,6 +841,9 @@ export function useGame() {
       const remainingAcks = currentPlayer.pendingAcknowledgments?.filter(ack => ack.id !== acknowledgmentId) || [];
       updates[`games/${gameId}/players/${user.uid}/pendingAcknowledgments`] = remainingAcks;
 
+      // Check if this is a Jealousy card being reflected/redirected
+      const isJealousyCard = acknowledgment.card.name.toLowerCase().includes('jealousy');
+
       // Handle the reaction
       if (reactionType === 'reflect') {
         // Reflect the card back to the original player
@@ -795,42 +851,114 @@ export function useGame() {
         const originalPlayer = currentGame.players[originalPlayerId];
         
         if (originalPlayer) {
-          const newAcknowledgment = {
-            id: `${acknowledgment.card.id}_reflected_${Date.now()}`,
-            card: acknowledgment.card,
-            playedBy: user.uid,
-            playedByName: user.displayName || user.email!,
-            timestamp: Date.now(),
-          };
+          if (isJealousyCard) {
+            // Special Jealousy reflection: original player swaps with last place or gets +3
+            const playersArr = Object.values(currentGame.players);
+            const lastPlacePlayer = playersArr.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))[0];
+            
+            if (lastPlacePlayer && lastPlacePlayer.id !== originalPlayerId) {
+              // Swap with last place player
+              const playersCopy = { ...currentGame.players };
+              swapScores(playersCopy[originalPlayerId], playersCopy[lastPlacePlayer.id]);
+              
+              // Update all players
+              Object.keys(playersCopy).forEach(playerId => {
+                updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
+              });
 
-          const existingAcks = originalPlayer.pendingAcknowledgments || [];
-          updates[`games/${gameId}/players/${originalPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+              updates[`games/${gameId}/gameActivity`] = [
+                ...(currentGame.gameActivity || []),
+                `${user.displayName || user.email} reflected Jealousy back to ${acknowledgment.playedByName} using ${reactiveCard.name} - ${acknowledgment.playedByName} swapped scores with ${lastPlacePlayer.name} (last place)`
+              ];
+            } else {
+              // Original player is in last place, add +3 to their total score
+              const updatedPlayer = { ...originalPlayer };
+              updatedPlayer.totalScore = (updatedPlayer.totalScore || 0) + 3;
+              
+              updates[`games/${gameId}/players/${originalPlayerId}`] = updatedPlayer;
 
-          updates[`games/${gameId}/gameActivity`] = [
-            ...(currentGame.gameActivity || []),
-            `${user.displayName || user.email} reflected ${acknowledgment.card.name} back to ${acknowledgment.playedByName} using ${reactiveCard.name}`
-          ];
+              updates[`games/${gameId}/gameActivity`] = [
+                ...(currentGame.gameActivity || []),
+                `${user.displayName || user.email} reflected Jealousy back to ${acknowledgment.playedByName} using ${reactiveCard.name} - ${acknowledgment.playedByName} was in last place and received +3 penalty`
+              ];
+            }
+          } else {
+            // Normal reflection
+            const newAcknowledgment = {
+              id: `${acknowledgment.card.id}_reflected_${Date.now()}`,
+              card: acknowledgment.card,
+              playedBy: user.uid,
+              playedByName: user.displayName || user.email!,
+              timestamp: Date.now(),
+            };
+
+            const existingAcks = originalPlayer.pendingAcknowledgments || [];
+            updates[`games/${gameId}/players/${originalPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+
+            updates[`games/${gameId}/gameActivity`] = [
+              ...(currentGame.gameActivity || []),
+              `${user.displayName || user.email} reflected ${acknowledgment.card.name} back to ${acknowledgment.playedByName} using ${reactiveCard.name}`
+            ];
+          }
         }
       } else if (reactionType === 'redirect' && targetPlayerId) {
-        // Redirect the card to another player
-        const targetPlayer = currentGame.players[targetPlayerId];
-        
-        if (targetPlayer) {
-          const newAcknowledgment = {
-            id: `${acknowledgment.card.id}_redirected_${Date.now()}`,
-            card: acknowledgment.card,
-            playedBy: user.uid,
-            playedByName: user.displayName || user.email!,
-            timestamp: Date.now(),
-          };
+        if (isJealousyCard) {
+          // Special Jealousy redirection: original player swaps with last place or gets +3
+          const originalPlayerId = acknowledgment.playedBy;
+          const originalPlayer = currentGame.players[originalPlayerId];
+          
+          if (originalPlayer) {
+            const playersArr = Object.values(currentGame.players);
+            const lastPlacePlayer = playersArr.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0))[0];
+            
+            if (lastPlacePlayer && lastPlacePlayer.id !== originalPlayerId) {
+              // Swap with last place player
+              const playersCopy = { ...currentGame.players };
+              swapScores(playersCopy[originalPlayerId], playersCopy[lastPlacePlayer.id]);
+              
+              // Update all players
+              Object.keys(playersCopy).forEach(playerId => {
+                updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
+              });
 
-          const existingAcks = targetPlayer.pendingAcknowledgments || [];
-          updates[`games/${gameId}/players/${targetPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+              updates[`games/${gameId}/gameActivity`] = [
+                ...(currentGame.gameActivity || []),
+                `${user.displayName || user.email} redirected Jealousy using ${reactiveCard.name} - ${acknowledgment.playedByName} swapped scores with ${lastPlacePlayer.name} (last place)`
+              ];
+            } else {
+              // Original player is in last place, add +3 to their total score
+              const updatedPlayer = { ...originalPlayer };
+              updatedPlayer.totalScore = (updatedPlayer.totalScore || 0) + 3;
+              
+              updates[`games/${gameId}/players/${originalPlayerId}`] = updatedPlayer;
 
-          updates[`games/${gameId}/gameActivity`] = [
-            ...(currentGame.gameActivity || []),
-            `${user.displayName || user.email} redirected ${acknowledgment.card.name} to ${targetPlayer.name} using ${reactiveCard.name}`
-          ];
+              updates[`games/${gameId}/gameActivity`] = [
+                ...(currentGame.gameActivity || []),
+                `${user.displayName || user.email} redirected Jealousy using ${reactiveCard.name} - ${acknowledgment.playedByName} was in last place and received +3 penalty`
+              ];
+            }
+          }
+        } else {
+          // Normal redirection
+          const targetPlayer = currentGame.players[targetPlayerId];
+          
+          if (targetPlayer) {
+            const newAcknowledgment = {
+              id: `${acknowledgment.card.id}_redirected_${Date.now()}`,
+              card: acknowledgment.card,
+              playedBy: user.uid,
+              playedByName: user.displayName || user.email!,
+              timestamp: Date.now(),
+            };
+
+            const existingAcks = targetPlayer.pendingAcknowledgments || [];
+            updates[`games/${gameId}/players/${targetPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+
+            updates[`games/${gameId}/gameActivity`] = [
+              ...(currentGame.gameActivity || []),
+              `${user.displayName || user.email} redirected ${acknowledgment.card.name} to ${targetPlayer.name} using ${reactiveCard.name}`
+            ];
+          }
         }
       }
 

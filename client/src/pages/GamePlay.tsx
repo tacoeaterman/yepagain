@@ -533,6 +533,8 @@ export default function GamePlay() {
         card={cardTargetModal.card}
         players={currentGame?.players || {}}
         currentUserId={user?.uid || ""}
+        currentHole={currentGame?.currentHole}
+        totalHoles={currentGame?.totalHoles}
         onPlayCard={handlePlayCard}
       />
 
