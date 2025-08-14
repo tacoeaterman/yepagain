@@ -322,7 +322,6 @@ export function useGame() {
       
       // Prepare updates object
       const updates: Record<string, any> = {
-        [`games/${gameId}/players/${user.uid}/hand`]: updatedHand,
         [`games/${gameId}/discardPile`]: updatedDiscardPile,
       };
 
@@ -333,19 +332,27 @@ export function useGame() {
         
         if (targetPlayer) {
           // Create copies of both players with swapped scores
-          const playersCopy = { ...currentGame.players };
-          swapScores(playersCopy[user.uid], playersCopy[targetPlayerId]);
+          const currentPlayerCopy = { ...currentGame.players[user.uid] };
+          const targetPlayerCopy = { ...targetPlayer };
           
-          // Update all players in the database
-          Object.keys(playersCopy).forEach(playerId => {
-            updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
-          });
+          // Update the current player's hand first
+          currentPlayerCopy.hand = updatedHand;
+          
+          // Swap scores between the two players
+          swapScores(currentPlayerCopy, targetPlayerCopy);
+          
+          // Update only the two affected players (with hand already updated for current player)
+          updates[`games/${gameId}/players/${user.uid}`] = currentPlayerCopy;
+          updates[`games/${gameId}/players/${targetPlayerId}`] = targetPlayerCopy;
           
           updates[`games/${gameId}/gameActivity`] = [
             ...(currentGame.gameActivity || []),
             `${user.displayName || user.email} played Jealousy and swapped scores with ${targetPlayer.name}`
           ];
         }
+      } else {
+        // For non-Jealousy cards, just update the hand
+        updates[`games/${gameId}/players/${user.uid}/hand`] = updatedHand;
       }
 
       // Add pending acknowledgments for targeted players
@@ -858,13 +865,14 @@ export function useGame() {
             
             if (lastPlacePlayer && lastPlacePlayer.id !== originalPlayerId) {
               // Swap with last place player
-              const playersCopy = { ...currentGame.players };
-              swapScores(playersCopy[originalPlayerId], playersCopy[lastPlacePlayer.id]);
+              const originalPlayerCopy = { ...originalPlayer };
+              const lastPlacePlayerCopy = { ...lastPlacePlayer };
               
-              // Update all players
-              Object.keys(playersCopy).forEach(playerId => {
-                updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
-              });
+              swapScores(originalPlayerCopy, lastPlacePlayerCopy);
+              
+              // Update only the two affected players
+              updates[`games/${gameId}/players/${originalPlayerId}`] = originalPlayerCopy;
+              updates[`games/${gameId}/players/${lastPlacePlayer.id}`] = lastPlacePlayerCopy;
 
               updates[`games/${gameId}/gameActivity`] = [
                 ...(currentGame.gameActivity || []),
@@ -913,13 +921,14 @@ export function useGame() {
             
             if (lastPlacePlayer && lastPlacePlayer.id !== originalPlayerId) {
               // Swap with last place player
-              const playersCopy = { ...currentGame.players };
-              swapScores(playersCopy[originalPlayerId], playersCopy[lastPlacePlayer.id]);
+              const originalPlayerCopy = { ...originalPlayer };
+              const lastPlacePlayerCopy = { ...lastPlacePlayer };
               
-              // Update all players
-              Object.keys(playersCopy).forEach(playerId => {
-                updates[`games/${gameId}/players/${playerId}`] = playersCopy[playerId];
-              });
+              swapScores(originalPlayerCopy, lastPlacePlayerCopy);
+              
+              // Update only the two affected players
+              updates[`games/${gameId}/players/${originalPlayerId}`] = originalPlayerCopy;
+              updates[`games/${gameId}/players/${lastPlacePlayer.id}`] = lastPlacePlayerCopy;
 
               updates[`games/${gameId}/gameActivity`] = [
                 ...(currentGame.gameActivity || []),
