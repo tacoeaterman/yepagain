@@ -1,23 +1,37 @@
-import { Card as CardType } from "@/types/game";
+import { Card as CardType, Player } from "@/types/game";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { CheckCircle, User } from "lucide-react";
+import { CheckCircle, User, Shield, Target, RotateCcw } from "lucide-react";
 
 interface CardAcknowledgmentModalProps {
   isOpen: boolean;
   onAcknowledge: () => void;
+  onReflect?: () => void;
+  onRedirect?: () => void;
   card: CardType | null;
   playedBy: string;
+  playerHand?: CardType[];
 }
 
 export function CardAcknowledgmentModal({
   isOpen,
   onAcknowledge,
+  onReflect,
+  onRedirect,
   card,
   playedBy,
+  playerHand = [],
 }: CardAcknowledgmentModalProps) {
   if (!card) return null;
+
+  // Check for reactive cards in player's hand
+  const hasRubberGlue = playerHand.some(c => 
+    c.name.toLowerCase().includes("rubber") && c.name.toLowerCase().includes("glue")
+  );
+  const hasRejectReality = playerHand.some(c => 
+    c.name.toLowerCase().includes("reject") && c.name.toLowerCase().includes("reality")
+  );
 
   const getCardColor = (category: string) => {
     switch (category) {
@@ -84,14 +98,47 @@ export function CardAcknowledgmentModal({
             </CardContent>
           </Card>
 
-          {/* Acknowledge Button */}
-          <Button
-            onClick={onAcknowledge}
-            className="w-full bg-brand-accent hover:bg-brand-accent/90 text-white font-semibold py-3 rounded-xl transition-colors"
-          >
-            <CheckCircle className="w-5 h-5 mr-2" />
-            I Understand
-          </Button>
+          {/* Action Buttons */}
+          <div className="space-y-3">
+            {/* Reactive Card Options */}
+            {(hasRubberGlue || hasRejectReality) && (
+              <div className="p-3 bg-yellow-500/10 border border-yellow-500/30 rounded-xl">
+                <p className="text-yellow-200 text-sm font-medium mb-3 text-center">
+                  <Shield className="w-4 h-4 inline mr-1" />
+                  You can react with these cards:
+                </p>
+                <div className="space-y-2">
+                  {hasRubberGlue && onReflect && (
+                    <Button
+                      onClick={onReflect}
+                      className="w-full bg-red-600/20 border border-red-500/40 text-white hover:bg-red-600/30 transition-colors"
+                    >
+                      <RotateCcw className="w-4 h-4 mr-2" />
+                      Reflect with "I'm rubber your glue"
+                    </Button>
+                  )}
+                  {hasRejectReality && onRedirect && (
+                    <Button
+                      onClick={onRedirect}
+                      className="w-full bg-purple-600/20 border border-purple-500/40 text-white hover:bg-purple-600/30 transition-colors"
+                    >
+                      <Target className="w-4 h-4 mr-2" />
+                      Redirect with "I reject your reality"
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Standard Acknowledge Button */}
+            <Button
+              onClick={onAcknowledge}
+              className="w-full bg-brand-accent hover:bg-brand-accent/90 text-white font-semibold py-3 rounded-xl transition-colors"
+            >
+              <CheckCircle className="w-5 h-5 mr-2" />
+              Accept Card Effect
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

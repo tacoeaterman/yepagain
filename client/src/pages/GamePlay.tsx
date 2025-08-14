@@ -2,19 +2,21 @@ import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { PlayerCard } from "@/components/PlayerCard";
 import { CardTargetModal } from "@/components/CardTargetModal";
 import { CardAcknowledgmentModal } from "@/components/CardAcknowledgmentModal";
+import { CardRedirectModal } from "@/components/CardRedirectModal";
 import { useGame } from "@/hooks/useGame";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card as CardType, PendingCardAcknowledgment } from "@/types/game";
-import { Play, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { Play, Eye, EyeOff, AlertCircle, LogOut } from "lucide-react";
 
 export default function GamePlay() {
   const [match, params] = useRoute("/game/:gameCode");
-  const { currentGame, listenToGame, findGameByCode, playCard, acknowledgeCard, submitScore, setParForHole, advanceToNextHole } = useGame();
+  const { currentGame, listenToGame, findGameByCode, playCard, acknowledgeCard, submitScore, setParForHole, advanceToNextHole, leaveGame, reactToCard } = useGame();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -27,6 +29,10 @@ export default function GamePlay() {
     card: CardType | null;
   }>({ isOpen: false, card: null });
   const [acknowledgmentModal, setAcknowledgmentModal] = useState<{
+    isOpen: boolean;
+    acknowledgment: PendingCardAcknowledgment | null;
+  }>({ isOpen: false, acknowledgment: null });
+  const [redirectModal, setRedirectModal] = useState<{
     isOpen: boolean;
     acknowledgment: PendingCardAcknowledgment | null;
   }>({ isOpen: false, acknowledgment: null });
@@ -136,6 +142,42 @@ export default function GamePlay() {
   const handleAdvanceHole = async () => {
     if (!currentGame?.id) return;
     await advanceToNextHole(currentGame.id);
+  };
+
+  const handleLeaveGame = async () => {
+    if (!currentGame?.id) return;
+    const success = await leaveGame(currentGame.id);
+    if (success) {
+      setLocation('/'); // Navigate to main menu
+    }
+  };
+
+  const handleReflectCard = async () => {
+    if (!currentGame?.id || !acknowledgmentModal.acknowledgment) return;
+    
+    await reactToCard(currentGame.id, acknowledgmentModal.acknowledgment.id, 'reflect');
+    setAcknowledgmentModal({ isOpen: false, acknowledgment: null });
+  };
+
+  const handleRedirectCard = () => {
+    if (!acknowledgmentModal.acknowledgment) return;
+    
+    // Open redirect modal
+    setRedirectModal({ isOpen: true, acknowledgment: acknowledgmentModal.acknowledgment });
+    setAcknowledgmentModal({ isOpen: false, acknowledgment: null });
+  };
+
+  const handleRedirectToPlayer = async (targetPlayerId: string) => {
+    if (!currentGame?.id || !redirectModal.acknowledgment) return;
+    
+    await reactToCard(currentGame.id, redirectModal.acknowledgment.id, 'redirect', targetPlayerId);
+    setRedirectModal({ isOpen: false, acknowledgment: null });
+  };
+
+  const handleCancelRedirect = () => {
+    // Restore acknowledgment modal
+    setAcknowledgmentModal({ isOpen: true, acknowledgment: redirectModal.acknowledgment });
+    setRedirectModal({ isOpen: false, acknowledgment: null });
   };
 
   const getCardColor = (category: string) => {
@@ -488,8 +530,20 @@ export default function GamePlay() {
             handleAcknowledgeCard(acknowledgmentModal.acknowledgment.id);
           }
         }}
+        onReflect={handleReflectCard}
+        onRedirect={handleRedirectCard}
         card={acknowledgmentModal.acknowledgment?.card || null}
         playedBy={acknowledgmentModal.acknowledgment?.playedByName || ""}
+        playerHand={currentPlayer?.hand || []}
+      />
+
+      {/* Card Redirect Modal */}
+      <CardRedirectModal
+        isOpen={redirectModal.isOpen}
+        onCancel={handleCancelRedirect}
+        onRedirect={handleRedirectToPlayer}
+        availablePlayers={Object.values(currentGame?.players || {})}
+        currentPlayerId={user?.uid || ""}
       />
 
       {/* Pending Acknowledgments Indicator */}
@@ -503,6 +557,50 @@ export default function GamePlay() {
           </div>
         </div>
       )}
+
+      {/* Leave Game Button */}
+      <div className="mt-8 flex justify-center">
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button 
+              variant="destructive" 
+              className="bg-red-600/20 border border-red-500/40 text-white hover:bg-red-600/30 transition-colors"
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Leave Game
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent className="glass-card border border-white/10">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-white">Leave Game?</AlertDialogTitle>
+              <AlertDialogDescription className="text-white/70">
+                Are you sure you want to leave this game? This action cannot be undone.
+                {currentGame.hostId === user.uid && Object.keys(currentGame.players).length > 1 && (
+                  <span className="block mt-2 text-amber-300 font-medium">
+                    As the host, another player will become the new host.
+                  </span>
+                )}
+                {currentGame.hostId === user.uid && Object.keys(currentGame.players).length === 1 && (
+                  <span className="block mt-2 text-red-300 font-medium">
+                    As the only player, leaving will delete this game.
+                  </span>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="bg-gray-700 text-white border-gray-600 hover:bg-gray-600">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction 
+                onClick={handleLeaveGame}
+                className="bg-red-600 text-white hover:bg-red-700"
+              >
+                Leave Game
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }

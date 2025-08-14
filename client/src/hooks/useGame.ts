@@ -316,6 +316,9 @@ export function useGame() {
       };
 
       // Add pending acknowledgments for targeted players
+      // Special case: "Ace run" cards should notify all OTHER players (not self)
+      const isAceRunWild = playedCard.name.toLowerCase().includes('ace run');
+      
       if (targetPlayerIds && targetPlayerIds.length > 0) {
         const acknowledgmentId = `${cardId}_${Date.now()}`;
         const acknowledgment = {
@@ -326,7 +329,14 @@ export function useGame() {
           timestamp: Date.now(),
         };
 
-        targetPlayerIds.forEach(targetId => {
+        // For Ace Run Wild, notify all OTHER players instead of the self-target
+        let playersToNotify = targetPlayerIds;
+        if (isAceRunWild && targetPlayerIds.includes(user.uid)) {
+          // Get all other players (not the current player)
+          playersToNotify = Object.keys(currentGame.players).filter(playerId => playerId !== user.uid);
+        }
+
+        playersToNotify.forEach(targetId => {
           const targetPlayer = currentGame.players[targetId];
           if (targetPlayer) {
             const existingAcks = targetPlayer.pendingAcknowledgments || [];
@@ -337,8 +347,12 @@ export function useGame() {
 
       // Update activity log
       let activityMessage = `${user.displayName || user.email} played ${playedCard.name}`;
+      
       if (targetPlayerIds && targetPlayerIds.length > 0) {
-        if (targetPlayerIds.length === 1) {
+        if (isAceRunWild && targetPlayerIds.includes(user.uid)) {
+          // For Ace Run Wild, show that it was played on self but others were notified
+          activityMessage += ` on themselves`;
+        } else if (targetPlayerIds.length === 1) {
           const targetName = currentGame.players[targetPlayerIds[0]]?.name;
           activityMessage += ` on ${targetName}`;
         } else {
@@ -722,6 +736,171 @@ export function useGame() {
     }
   };
 
+  const reactToCard = async (gameId: string, acknowledgmentId: string, reactionType: 'reflect' | 'redirect', targetPlayerId?: string) => {
+    if (!user || !currentGame) return;
+
+    try {
+      const currentPlayer = currentGame.players[user.uid];
+      if (!currentPlayer) return;
+
+      // Find the acknowledgment
+      const acknowledgment = currentPlayer.pendingAcknowledgments?.find(ack => ack.id === acknowledgmentId);
+      if (!acknowledgment) return;
+
+      // Find the reactive card in player's hand
+      let reactiveCard: CardType | null = null;
+      let reactiveCardIndex = -1;
+
+      if (reactionType === 'reflect') {
+        reactiveCardIndex = currentPlayer.hand.findIndex(card => 
+          card.name.toLowerCase().includes("rubber") && card.name.toLowerCase().includes("glue")
+        );
+      } else if (reactionType === 'redirect') {
+        reactiveCardIndex = currentPlayer.hand.findIndex(card => 
+          card.name.toLowerCase().includes("reject") && card.name.toLowerCase().includes("reality")
+        );
+      }
+
+      if (reactiveCardIndex === -1) {
+        toast({
+          title: "Card not found",
+          description: "You don't have the required reactive card",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      reactiveCard = currentPlayer.hand[reactiveCardIndex];
+
+      // Remove reactive card from hand
+      const updatedHand = [...currentPlayer.hand];
+      updatedHand.splice(reactiveCardIndex, 1);
+
+      // Add reactive card to discard pile
+      const updatedDiscardPile = [...(currentGame.discardPile || []), reactiveCard];
+
+      const updates: Record<string, any> = {
+        [`games/${gameId}/players/${user.uid}/hand`]: updatedHand,
+        [`games/${gameId}/discardPile`]: updatedDiscardPile,
+      };
+
+      // Remove the acknowledgment from current player
+      const remainingAcks = currentPlayer.pendingAcknowledgments?.filter(ack => ack.id !== acknowledgmentId) || [];
+      updates[`games/${gameId}/players/${user.uid}/pendingAcknowledgments`] = remainingAcks;
+
+      // Handle the reaction
+      if (reactionType === 'reflect') {
+        // Reflect the card back to the original player
+        const originalPlayerId = acknowledgment.playedBy;
+        const originalPlayer = currentGame.players[originalPlayerId];
+        
+        if (originalPlayer) {
+          const newAcknowledgment = {
+            id: `${acknowledgment.card.id}_reflected_${Date.now()}`,
+            card: acknowledgment.card,
+            playedBy: user.uid,
+            playedByName: user.displayName || user.email!,
+            timestamp: Date.now(),
+          };
+
+          const existingAcks = originalPlayer.pendingAcknowledgments || [];
+          updates[`games/${gameId}/players/${originalPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+
+          updates[`games/${gameId}/gameActivity`] = [
+            ...(currentGame.gameActivity || []),
+            `${user.displayName || user.email} reflected ${acknowledgment.card.name} back to ${acknowledgment.playedByName} using ${reactiveCard.name}`
+          ];
+        }
+      } else if (reactionType === 'redirect' && targetPlayerId) {
+        // Redirect the card to another player
+        const targetPlayer = currentGame.players[targetPlayerId];
+        
+        if (targetPlayer) {
+          const newAcknowledgment = {
+            id: `${acknowledgment.card.id}_redirected_${Date.now()}`,
+            card: acknowledgment.card,
+            playedBy: user.uid,
+            playedByName: user.displayName || user.email!,
+            timestamp: Date.now(),
+          };
+
+          const existingAcks = targetPlayer.pendingAcknowledgments || [];
+          updates[`games/${gameId}/players/${targetPlayerId}/pendingAcknowledgments`] = [...existingAcks, newAcknowledgment];
+
+          updates[`games/${gameId}/gameActivity`] = [
+            ...(currentGame.gameActivity || []),
+            `${user.displayName || user.email} redirected ${acknowledgment.card.name} to ${targetPlayer.name} using ${reactiveCard.name}`
+          ];
+        }
+      }
+
+      await update(ref(database), updates);
+      
+      toast({
+        title: "Card reaction successful!",
+        description: `You used ${reactiveCard.name} to ${reactionType} the incoming card`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const leaveGame = async (gameId: string) => {
+    if (!user || !currentGame) return;
+
+    try {
+      // Remove player from the game
+      const updates: Record<string, any> = {
+        [`games/${gameId}/players/${user.uid}`]: null, // Remove player
+        [`games/${gameId}/gameActivity`]: [
+          ...(currentGame.gameActivity || []),
+          `${user.displayName || user.email} left the game`,
+        ],
+      };
+
+      // If the leaving player is the host, we need special handling
+      if (currentGame.hostId === user.uid) {
+        const remainingPlayers = Object.values(currentGame.players).filter(p => p.id !== user.uid);
+        
+        if (remainingPlayers.length > 0) {
+          // Transfer host to the first remaining player
+          const newHost = remainingPlayers[0];
+          updates[`games/${gameId}/hostId`] = newHost.id;
+          updates[`games/${gameId}/gameActivity`] = [
+            ...(updates[`games/${gameId}/gameActivity`] || []),
+            `${newHost.name} is now the host`,
+          ];
+        } else {
+          // No players left, delete the game
+          updates[`games/${gameId}`] = null;
+        }
+      }
+
+      await update(ref(database), updates);
+      
+      // Clear local game state
+      setCurrentGame(null);
+      
+      toast({
+        title: "Left Game",
+        description: "You have successfully left the game",
+      });
+      
+      return true; // Success
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to leave game",
+        variant: "destructive",
+      });
+      return false; // Failure
+    }
+  };
+
   return {
     currentGame,
     hasHostingPrivilege,
@@ -739,5 +918,7 @@ export function useGame() {
     scheduleGame,
     getScheduledGames,
     cancelScheduledGame,
+    leaveGame,
+    reactToCard,
   };
 }
