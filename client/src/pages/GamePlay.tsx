@@ -162,9 +162,16 @@ export default function GamePlay() {
   const handleRedirectCard = () => {
     if (!acknowledgmentModal.acknowledgment) return;
     
-    // Open redirect modal
-    setRedirectModal({ isOpen: true, acknowledgment: acknowledgmentModal.acknowledgment });
+    // Store the acknowledgment for redirect
+    const acknowledgmentToRedirect = acknowledgmentModal.acknowledgment;
+    
+    // Close acknowledgment modal first
     setAcknowledgmentModal({ isOpen: false, acknowledgment: null });
+    
+    // Open redirect modal after a short delay to ensure proper modal transition
+    setTimeout(() => {
+      setRedirectModal({ isOpen: true, acknowledgment: acknowledgmentToRedirect });
+    }, 100);
   };
 
   const handleRedirectToPlayer = async (targetPlayerId: string) => {
@@ -175,9 +182,16 @@ export default function GamePlay() {
   };
 
   const handleCancelRedirect = () => {
-    // Restore acknowledgment modal
-    setAcknowledgmentModal({ isOpen: true, acknowledgment: redirectModal.acknowledgment });
+    // Store the acknowledgment to restore
+    const acknowledgmentToRestore = redirectModal.acknowledgment;
+    
+    // Close redirect modal first
     setRedirectModal({ isOpen: false, acknowledgment: null });
+    
+    // Restore acknowledgment modal after a short delay
+    setTimeout(() => {
+      setAcknowledgmentModal({ isOpen: true, acknowledgment: acknowledgmentToRestore });
+    }, 100);
   };
 
   const getCardColor = (category: string) => {

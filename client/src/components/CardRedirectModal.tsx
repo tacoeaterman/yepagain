@@ -23,11 +23,12 @@ export function CardRedirectModal({
   const targetPlayers = availablePlayers.filter(player => player.id !== currentPlayerId);
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => {}}>
-      <DialogContent 
-        className="max-w-md bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-white/20"
-        hideCloseButton
-      >
+    <div style={{ zIndex: 60 }} className="relative">
+      <Dialog open={isOpen} onOpenChange={() => {}}>
+        <DialogContent 
+          className="max-w-md bg-gradient-to-br from-slate-900/95 to-slate-800/95 border-white/20"
+          hideCloseButton
+        >
         <DialogHeader>
           <DialogTitle className="text-white text-xl font-bold text-center">
             <Target className="w-6 h-6 inline mr-2" />
@@ -76,5 +77,6 @@ export function CardRedirectModal({
         </div>
       </DialogContent>
     </Dialog>
+    </div>
   );
 }
