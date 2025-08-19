@@ -4,7 +4,7 @@ import { GameCard } from "@/components/GameCard";
 import { useAuth } from "@/hooks/useAuth";
 import { useGame } from "@/hooks/useGame";
 import { Link, useLocation } from "wouter";
-import { Plus, Users, ShoppingBag, Calendar, Bot, Bug, Clock } from "lucide-react";
+import { Plus, Users, ShoppingBag, Calendar, Bot, Bug, Clock, BookOpen } from "lucide-react";
 
 export default function MainMenu() {
   const { user, logout } = useAuth();
@@ -24,6 +24,13 @@ export default function MainMenu() {
           </div>
           <div className="flex items-center space-x-2">
             <span className="text-white/80 text-sm">{user?.displayName || user?.email}</span>
+            <Button
+              onClick={() => setLocation('/rules')}
+              className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+              size="sm"
+            >
+              <BookOpen className="w-5 h-5 text-white" />
+            </Button>
             <Button
               onClick={logout}
               className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"

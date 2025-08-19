@@ -14,6 +14,7 @@ import GameLobby from "@/pages/GameLobby";
 import GamePlay from "@/pages/GamePlay";
 import GameResults from "@/pages/GameResults";
 import ScheduleGame from "@/pages/ScheduleGame";
+import Rules from "@/pages/Rules";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -50,6 +51,7 @@ function Router() {
       <Route path="/game/:gameCode" component={GamePlay} />
       <Route path="/results/:gameCode" component={GameResults} />
       <Route path="/schedule" component={ScheduleGame} />
+      <Route path="/rules" component={Rules} />
       <Route component={NotFound} />
     </Switch>
   );

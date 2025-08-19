@@ -76,6 +76,25 @@ export function useGame() {
     }
 
     try {
+      // Input sanitization and validation
+      if (!Number.isInteger(totalHoles) || totalHoles < 1 || totalHoles > 18) {
+        toast({
+          title: "Invalid hole count",
+          description: "Total holes must be between 1 and 18",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Sanitize game name if provided
+      let sanitizedGameName = 'Disc Golf Game';
+      if (gameName && typeof gameName === 'string') {
+        sanitizedGameName = gameName.trim().slice(0, 100).replace(/[<>\"']/g, '');
+        if (sanitizedGameName.length < 1) {
+          sanitizedGameName = 'Disc Golf Game';
+        }
+      }
+
       const gameCode = generateGameCode();
       const gameRef = push(ref(database, 'games'));
       
@@ -95,7 +114,7 @@ export function useGame() {
         id: gameRef.key!,
         gameCode,
         hostId: user.uid,
-        gameName,
+        gameName: sanitizedGameName,
         totalHoles,
         currentHole: 1,
         currentPar: 3,
@@ -279,11 +298,41 @@ export function useGame() {
     if (!user || !currentGame) return;
 
     try {
+      // Security validation
+      if (!gameId || typeof gameId !== 'string') {
+        toast({
+          title: "Error",
+          description: "Invalid game ID",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!cardId || typeof cardId !== 'string') {
+        toast({
+          title: "Error",
+          description: "Invalid card ID",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if player is in the game
       const currentPlayer = currentGame.players[user.uid];
       if (!currentPlayer) {
         toast({
-          title: "Error",
-          description: "Player not found in game",
+          title: "Access denied",
+          description: "You are not a player in this game",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if game is in playing phase
+      if (currentGame.gamePhase !== 'playing') {
+        toast({
+          title: "Cannot play card",
+          description: "Cards can only be played during the game",
           variant: "destructive",
         });
         return;
@@ -456,11 +505,31 @@ export function useGame() {
     if (!user || !currentGame) return;
 
     try {
-      // Validate score range
+      // Client-side validation
       if (!Number.isInteger(score) || score < 1 || score > 30) {
         toast({
           title: "Invalid score",
           description: "Score must be a whole number between 1 and 30 strokes",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Additional security validation
+      if (holeIndex < 0 || holeIndex >= (currentGame.totalHoles || 18)) {
+        toast({
+          title: "Invalid hole",
+          description: "Invalid hole number",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if player is actually in the game
+      if (!currentGame.players[user.uid]) {
+        toast({
+          title: "Access denied",
+          description: "You are not a player in this game",
           variant: "destructive",
         });
         return;

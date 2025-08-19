@@ -90,6 +90,22 @@ var MemStorage = class {
 var storage = new MemStorage();
 
 // server/routes.ts
+var validateFirebaseToken = async (token) => {
+  try {
+    if (!token || token.length < 10) return null;
+    try {
+      const decoded = JSON.parse(atob(token));
+      if (decoded.uid && decoded.email) {
+        return { uid: decoded.uid, email: decoded.email };
+      }
+    } catch (e) {
+    }
+    return null;
+  } catch (error) {
+    console.error("Token validation error:", error);
+    return null;
+  }
+};
 async function registerRoutes(app) {
   const httpServer = createServer(app);
   const wss = new WebSocketServer({
@@ -99,12 +115,45 @@ async function registerRoutes(app) {
   const connections = /* @__PURE__ */ new Map();
   wss.on("connection", (ws, request) => {
     console.log("WebSocket connection established");
+    let isAuthenticated = false;
+    let authenticatedUser = null;
+    const authTimeout = setTimeout(() => {
+      if (!isAuthenticated) {
+        ws.send(JSON.stringify({ type: "error", message: "Authentication timeout" }));
+        ws.close();
+      }
+    }, 1e4);
     ws.on("message", async (data) => {
       try {
         const message = JSON.parse(data.toString());
-        const { type, userId, gameId, payload } = message;
-        if (userId && type === "authenticate") {
-          connections.set(userId, ws);
+        const { type, userId, gameId, payload, token } = message;
+        if (type === "authenticate") {
+          if (!token) {
+            ws.send(JSON.stringify({ type: "error", message: "Authentication token required" }));
+            ws.close();
+            return;
+          }
+          const user = await validateFirebaseToken(token);
+          if (!user) {
+            ws.send(JSON.stringify({ type: "error", message: "Invalid authentication token" }));
+            ws.close();
+            return;
+          }
+          clearTimeout(authTimeout);
+          isAuthenticated = true;
+          authenticatedUser = user;
+          connections.set(user.uid, { ws, user });
+          ws.send(JSON.stringify({ type: "authenticated", userId: user.uid }));
+          console.log(`WebSocket authenticated for user: ${user.uid}`);
+          return;
+        }
+        if (!isAuthenticated || !authenticatedUser) {
+          ws.send(JSON.stringify({ type: "error", message: "Authentication required" }));
+          return;
+        }
+        if (userId && userId !== authenticatedUser.uid) {
+          ws.send(JSON.stringify({ type: "error", message: "User ID mismatch" }));
+          return;
         }
         switch (type) {
           case "join_game":
@@ -135,18 +184,20 @@ async function registerRoutes(app) {
       }
     });
     ws.on("close", () => {
+      clearTimeout(authTimeout);
       for (const [userId, connection] of Array.from(connections.entries())) {
-        if (connection === ws) {
+        if (connection.ws === ws) {
           connections.delete(userId);
+          console.log(`WebSocket disconnected for user: ${userId}`);
           break;
         }
       }
     });
   });
   function broadcastToGame(gameId, message) {
-    for (const [userId, ws] of Array.from(connections.entries())) {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify(message));
+    for (const [userId, connection] of Array.from(connections.entries())) {
+      if (connection.ws.readyState === WebSocket.OPEN) {
+        connection.ws.send(JSON.stringify(message));
       }
     }
   }

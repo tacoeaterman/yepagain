@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { Card as CardType, PendingCardAcknowledgment } from "@/types/game";
-import { Play, Eye, EyeOff, AlertCircle, LogOut } from "lucide-react";
+import { Play, Eye, EyeOff, AlertCircle, LogOut, BookOpen } from "lucide-react";
 
 export default function GamePlay() {
   const [match, params] = useRoute("/game/:gameCode");
@@ -294,6 +294,19 @@ export default function GamePlay() {
   return (
     <div className="container mx-auto px-4 py-8 max-w-6xl">
       
+      {/* Rules Button - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={() => setLocation('/rules')}
+          variant="outline"
+          size="sm"
+          className="bg-white/10 border-white/20 text-white hover:bg-white/20 backdrop-blur-sm"
+        >
+          <BookOpen className="w-4 h-4 mr-2" />
+          Rules
+        </Button>
+      </div>
+
       {/* Game Progress Header */}
       <Card className="glass-card rounded-3xl p-6 mb-6 border-0">
         <CardContent className="p-0">
